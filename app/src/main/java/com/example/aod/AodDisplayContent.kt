@@ -47,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,6 +77,7 @@ import com.example.ui.theme.TrueOledBlack
 import com.example.util.HapticFeedbackUtil
 import com.example.util.IslamicCalendarUtil
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.cos
@@ -168,6 +170,9 @@ fun AodDisplayContent(
         val status = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
         mutableStateOf(status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL)
     }
+
+    val coroutineScope = rememberCoroutineScope()
+    var quoteUpdateVersion by remember { mutableIntStateOf(0) }
 
     // Next Prayer State
     var nextPrayer by remember { mutableStateOf(IslamicCalendarUtil.getNextPrayer()) }
@@ -837,15 +842,27 @@ fun AodDisplayContent(
             }
 
             // =====================================================================
-            // ACTIVE BOOK QUOTE BOX (Updates strictly on minute tick - 0% CPU churn)
+            // AOD BOOK QUOTE PLAQUE (Al-Mihrab Specular Glass - Double Tap to Advance)
             // =====================================================================
-            val pinnedQuote = remember(currentTimeString) {
+            val pinnedQuote = remember(currentTimeString, quoteUpdateVersion) {
                 com.example.util.QuotePreferences.getPinnedQuote(context)
             }
-            ActiveBookQuoteBox(
-                quote = pinnedQuote,
+            AodBookQuotePlaque(
+                bookTitle = pinnedQuote.bookTitle,
+                authorName = pinnedQuote.author,
+                quoteText = pinnedQuote.content,
+                pageNumber = pinnedQuote.pageNumber,
+                dailyProgressLabel = "وِرد اليوم: ${pinnedQuote.dailyChunkIndex}/${pinnedQuote.dailyTargetChunks}",
                 accentColor = accentBrightColor,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                onDoubleTapAdvanceChunk = {
+                    HapticFeedbackUtil.performMechanicalMisbahaTick(context)
+                    coroutineScope.launch {
+                        val app = context.applicationContext as? com.example.MuhasibApplication
+                        app?.repository?.advanceBookChunkCursor(pinnedQuote.bookId)
+                        quoteUpdateVersion++
+                    }
+                },
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
             )
 
             // =====================================================================

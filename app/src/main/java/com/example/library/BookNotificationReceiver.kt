@@ -68,12 +68,8 @@ class BookNotificationReceiver : BroadcastReceiver() {
 
             ACTION_MARK_READ -> {
                 val bookId = intent.getStringExtra(EXTRA_BOOK_ID) ?: return
-                val chunkId = intent.getStringExtra(EXTRA_CHUNK_ID) ?: return
-                val chunkIndex = intent.getIntExtra(EXTRA_CHUNK_INDEX, 0)
-
                 scope.launch {
-                    repository.markChunkRead(chunkId, true)
-                    repository.updateBookCursor(bookId, chunkIndex + 1)
+                    repository.advanceBookChunkCursor(bookId)
 
                     val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
                     nm?.cancel(NOTIFICATION_ID_WIRD)

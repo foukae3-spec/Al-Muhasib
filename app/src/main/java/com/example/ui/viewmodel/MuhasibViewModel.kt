@@ -29,6 +29,7 @@ import java.time.LocalDate
 
 data class MuhasibUiState(
     val currentTheme: AppTheme = AppTheme.DEFAULT,
+    val muhasibThemeMode: com.example.ui.theme.MuhasibThemeMode = com.example.ui.theme.MuhasibThemeMode.AMOLED_DARK,
     val selectedDhikrCategory: DhikrCategory = DhikrCategory.MORNING,
     val showPanicSheet: Boolean = false,
     val showOnboardingDialog: Boolean = false,
@@ -151,6 +152,33 @@ class MuhasibViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             repository.updateBookCursor(bookId, nextCursor)
         }
+    }
+
+    fun advanceQuoteChunk(bookId: String) {
+        viewModelScope.launch {
+            repository.advanceBookChunkCursor(bookId)
+        }
+    }
+
+    fun downloadOpenSourceBook(bookId: String) {
+        viewModelScope.launch {
+            com.example.library.OpenSourceBookCatalog.downloadOrSeedBook(getApplication(), repository, bookId)
+        }
+    }
+
+    fun toggleThemeMode() {
+        val nextMode = when (_uiState.value.muhasibThemeMode) {
+            com.example.ui.theme.MuhasibThemeMode.AMOLED_DARK -> com.example.ui.theme.MuhasibThemeMode.PARCHMENT_LIGHT
+            com.example.ui.theme.MuhasibThemeMode.PARCHMENT_LIGHT -> com.example.ui.theme.MuhasibThemeMode.SOLAR_AUTO
+            com.example.ui.theme.MuhasibThemeMode.SOLAR_AUTO -> com.example.ui.theme.MuhasibThemeMode.AMOLED_DARK
+        }
+        _uiState.value = _uiState.value.copy(muhasibThemeMode = nextMode)
+        val appTheme = when (nextMode) {
+            com.example.ui.theme.MuhasibThemeMode.AMOLED_DARK -> AppTheme.MIHRAB_AMOLED_DARK
+            com.example.ui.theme.MuhasibThemeMode.PARCHMENT_LIGHT -> AppTheme.MIHRAB_PARCHMENT_LIGHT
+            com.example.ui.theme.MuhasibThemeMode.SOLAR_AUTO -> AppTheme.MIHRAB_AMOLED_DARK
+        }
+        setAppTheme(appTheme)
     }
 
     init {

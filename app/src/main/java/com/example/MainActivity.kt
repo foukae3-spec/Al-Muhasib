@@ -50,6 +50,8 @@ import com.example.ui.screens.QuranScreen
 import com.example.ui.screens.RecoveryScreen
 import com.example.ui.theme.AlMuhasibTheme
 import com.example.ui.theme.LocalAppColors
+import com.example.ui.theme.MuhasibSalehTheme
+import com.example.ui.theme.SacredAccentPalette
 import com.example.ui.viewmodel.MuhasibViewModel
 import com.example.ui.viewmodel.QuranViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -68,15 +70,21 @@ class MainActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             var isDarkMode by remember { mutableStateOf(true) }
 
-            AlMuhasibTheme(
-                appTheme = uiState.currentTheme,
-                darkTheme = isDarkMode
+            MuhasibSalehTheme(
+                themeMode = uiState.muhasibThemeMode,
+                palette = SacredAccentPalette.fromAodAccent(uiState.aodAccentColor),
+                isDaylightFromSolarCalc = false
             ) {
-                MainAppContent(
-                    isDarkMode = isDarkMode,
-                    onToggleTheme = { isDarkMode = !isDarkMode },
-                    viewModel = viewModel
-                )
+                AlMuhasibTheme(
+                    appTheme = uiState.currentTheme,
+                    darkTheme = isDarkMode
+                ) {
+                    MainAppContent(
+                        isDarkMode = isDarkMode,
+                        onToggleTheme = { isDarkMode = !isDarkMode },
+                        viewModel = viewModel
+                    )
+                }
             }
         }
     }
@@ -210,6 +218,7 @@ fun MainAppContent(
                         NavigationTab.BOOKS -> {
                             BooksLibraryScreen(
                                 books = allBooks,
+                                viewModel = viewModel,
                                 onSelectActiveWirdBook = { viewModel.setActiveReadingBook(it) }
                             )
                         }

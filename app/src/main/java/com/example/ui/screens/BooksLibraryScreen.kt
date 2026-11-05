@@ -41,6 +41,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -67,29 +68,40 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.MuhasibApplication
 import com.example.data.model.BookChunk
 import com.example.data.model.IslamicBook
 import com.example.data.seed.IslamicBooksSeedData
 import com.example.library.BookDownloadStatus
+import com.example.library.BookWirdScheduler
+import com.example.library.OpenSourceBookCatalog
 import com.example.library.OpenSourceBookRepository
 import com.example.ui.components.AppleGlassCard
+import com.example.ui.components.BookQuoteChunkUiModel
 import com.example.ui.components.PillShape
 import com.example.ui.components.SquircleShapeLarge
 import com.example.ui.components.SquircleShapeMedium
+import com.example.ui.components.appleSpringClickable
 import com.example.ui.theme.LocalAppColors
+import com.example.ui.theme.LocalMuhasibColors
+import com.example.ui.theme.MuhasibThemeMode
 import com.example.ui.theme.SpiritualAmber
 import com.example.ui.theme.SpiritualCyan
 import com.example.ui.theme.SpiritualEmerald
 import com.example.ui.theme.SpiritualEmeraldBright
 import com.example.ui.theme.SpiritualGold
 import com.example.ui.theme.SpiritualGoldBright
+import com.example.ui.viewmodel.MuhasibViewModel
 import com.example.util.HapticFeedbackUtil
+import com.example.util.IslamicCalendarUtil
 import com.example.util.QuotePreferences
 import com.example.widget.WidgetUpdateHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.Duration
+import java.time.LocalTime
 
 enum class BookCategoryTab(val catId: String, val titleArabic: String) {
     ADDICTION(IslamicBooksSeedData.CAT_ADDICTION, "كسر الإدمان والشهوات"),
@@ -101,113 +113,338 @@ enum class BookCategoryTab(val catId: String, val titleArabic: String) {
 fun BooksLibraryScreen(
     books: List<IslamicBook>,
     onSelectActiveWirdBook: (String) -> Unit,
+    viewModel: MuhasibViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val appColors = LocalAppColors.current
+    val muhasibColors = LocalMuhasibColors.current
     val scope = rememberCoroutineScope()
     val app = context.applicationContext as MuhasibApplication
     val repository = app.repository
 
+    var showMihrabHub by remember { mutableStateOf(true) }
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var activeReadingBook by remember { mutableStateOf<IslamicBook?>(null) }
     var activeBookId by remember { mutableStateOf(QuotePreferences.getActiveBookId(context)) }
+    var quoteUpdateTrigger by remember { mutableIntStateOf(0) }
+
+    // Live states from viewModel
+    val uiState = viewModel?.uiState?.collectAsStateWithLifecycle()?.value
+    val todayPrayerLog = viewModel?.todayPrayerLog?.collectAsStateWithLifecycle()?.value ?: com.example.data.model.PrayerLog(dateString = "")
+    val sobrietyLog = viewModel?.sobrietyState?.collectAsStateWithLifecycle()?.value ?: com.example.data.model.SobrietyLog()
+    val recoveryTracks = viewModel?.recoveryTracks?.collectAsStateWithLifecycle()?.value ?: emptyList()
+    val muhasabahHistory = viewModel?.muhasabahHistory?.collectAsStateWithLifecycle()?.value ?: emptyList()
+
+    // 1. Muhasabah calculation
+    val fardCount = todayPrayerLog.completedCount()
+    val muhasabahScore = muhasabahHistory.firstOrNull()?.scorePercentage ?: (fardCount * 20)
+
+    // 2. Next Prayer calculation
+    val nextPrayer = remember(quoteUpdateTrigger) { IslamicCalendarUtil.getNextPrayer() }
+    val now = remember(quoteUpdateTrigger) { LocalTime.now() }
+    val diffMinutes = remember(now, nextPrayer) {
+        val diff = Duration.between(now, nextPrayer.time).toMinutes()
+        if (diff < 0) diff + 1440 else diff
+    }
+    val nextSalahCountdown = "${diffMinutes / 60}س ${diffMinutes % 60}د"
+
+    // 3. Active Quote Chunk UI Model
+    val pinned = remember(quoteUpdateTrigger) { QuotePreferences.getPinnedQuote(context) }
+    val activeQuoteChunk = remember(pinned) {
+        BookQuoteChunkUiModel(
+            bookId = pinned.bookId,
+            bookTitle = pinned.bookTitle,
+            authorName = pinned.author,
+            chapterTitle = pinned.title,
+            excerptText = pinned.content,
+            pageNumber = pinned.pageNumber,
+            totalBookPages = 180,
+            dailyChunkIndex = pinned.dailyChunkIndex,
+            dailyTargetChunks = pinned.dailyTargetChunks,
+            isPinnedToAod = true
+        )
+    }
+
+    // 4. Reform Tracks Cards
+    val cleanDays = sobrietyLog.cleanDaysCount
+    val streakSalah = (recoveryTracks.find { it.trackType == "SALAH" }?.cleanStreakSeconds ?: (cleanDays.toLong() * 86400L)) / 86400L
+    val streakWeed = (recoveryTracks.find { it.trackType == "CANNABIS" }?.cleanStreakSeconds ?: (cleanDays.toLong() * 86400L)) / 86400L
+    val streakPorn = (recoveryTracks.find { it.trackType == "PORNOGRAPHY" }?.cleanStreakSeconds ?: (cleanDays.toLong() * 86400L)) / 86400L
+    val streakSmoking = (recoveryTracks.find { it.trackType == "SMOKING" }?.cleanStreakSeconds ?: (cleanDays.toLong() * 86400L)) / 86400L
+
+    val reformTracksList = remember(recoveryTracks, sobrietyLog, muhasibColors) {
+        listOf(
+            ReformTrackCardModel(
+                id = "SALAH",
+                titleArabic = "حفظ الصلاة في وقتها",
+                subtitleArabic = "القفل المقدس والخشوع",
+                streakDays = maxOf(streakSalah.toInt(), 1),
+                streakHours = 14,
+                physiologicalStatus = "انتظام الإيقاع الحيوي وهدوء الجهاز العصبي بالصلوات الخمس",
+                accentColor = muhasibColors.salahGuardAccent,
+                primaryActionLabel = "حراسة الصلاة"
+            ),
+            ReformTrackCardModel(
+                id = "WEED",
+                titleArabic = "صفاء الذهن (ترك الحشيش)",
+                subtitleArabic = "يقظة العقل وسلامة الصدر",
+                streakDays = streakWeed.toInt(),
+                streakHours = 8,
+                physiologicalStatus = "استعادة مستقبلات CB1 الدماغية وتنظيم إفراز الدوبامين الطبيعي",
+                accentColor = muhasibColors.clarityWeedAccent,
+                primaryActionLabel = "سجل الثبات"
+            ),
+            ReformTrackCardModel(
+                id = "PORN",
+                titleArabic = "طهارة القلب (ترك الإباحية)",
+                subtitleArabic = "غض البصر ونقاء السريرة",
+                streakDays = streakPorn.toInt(),
+                streakHours = 19,
+                physiologicalStatus = "إعادة ضبط حساسية الدوبامين وتجديد مادة الدماغ الرمادية",
+                accentColor = muhasibColors.purityPornAccent,
+                primaryActionLabel = "درع الطهارة"
+            ),
+            ReformTrackCardModel(
+                id = "SMOKING",
+                titleArabic = "نقاء الأنفاس (ترك التدخين)",
+                subtitleArabic = "حفظ البدن والصحة",
+                streakDays = streakSmoking.toInt(),
+                streakHours = 6,
+                physiologicalStatus = "طرد أول أكسيد الكربون وتجديد الأهداب التنفسية وتوسيع الرئتين",
+                accentColor = muhasibColors.breathSmokingAccent,
+                primaryActionLabel = "تنفس الصعداء"
+            )
+        )
+    }
+
+    // 5. Open Source Books List
+    val openSourceBooksList = remember(books) {
+        OpenSourceBookCatalog.canonicalEntries.map { entry ->
+            val bookEntity = books.find { it.id == entry.id || it.id == entry.canonicalAlias }
+            val downloaded = bookEntity?.isDownloaded == true
+            val cursor = bookEntity?.currentChunkCursor ?: 0
+            OpenSourceBookItemModel(
+                id = entry.id,
+                titleArabic = entry.titleArabic,
+                authorArabic = entry.authorArabic,
+                targetHealingTag = entry.targetHealingTag,
+                totalPages = entry.totalPages,
+                currentBookmarkPage = (cursor / 2) + 1,
+                pagesReadToday = (cursor % 5) / 2,
+                dailyGoalPages = 2,
+                isDownloaded = downloaded,
+                isDownloading = false,
+                isEnabledForNotifications = downloaded
+            )
+        }
+    }
 
     val currentTab = BookCategoryTab.entries[selectedTabIndex]
     val filteredBooks = books.filter { it.category == currentTab.catId }
 
+    val isDark = muhasibColors.isDark
+    val hubBg = if (showMihrabHub) muhasibColors.accent else muhasibColors.elevatedPill
+    val hubText = if (showMihrabHub) (if (isDark) Color.Black else Color.White) else muhasibColors.primaryInk
+    val shelfBg = if (!showMihrabHub) muhasibColors.accent else muhasibColors.elevatedPill
+    val shelfText = if (!showMihrabHub) (if (isDark) Color.Black else Color.White) else muhasibColors.primaryInk
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(appColors.background)
-            .padding(top = 10.dp)
+            .background(muhasibColors.canvas)
     ) {
-        // Top Header
-        Column(modifier = Modifier.padding(horizontal = 18.dp)) {
-            Text(
-                text = "خِزَانَةُ «الصَّالِح» الإِسْلَامِيَّة",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = appColors.textPrimary,
-                    fontSize = 26.sp
+        // Mode Switcher Header: محراب الصالح vs خزانة الكتب
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .appleSpringClickable {
+                        HapticFeedbackUtil.performLightTick(context)
+                        showMihrabHub = true
+                    },
+                color = hubBg,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "🏛️ مِحْرَابُ الصَّالِح",
+                    color = hubText,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 10.dp)
                 )
-            )
-            Text(
-                text = "كتب التراث الإسلامي المفتوحة المصدر المقسمة للشذرات اليومية",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = SpiritualGoldBright,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 11.5.sp
+            }
+
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .appleSpringClickable {
+                        HapticFeedbackUtil.performLightTick(context)
+                        showMihrabHub = false
+                    },
+                color = shelfBg,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "📚 خِزَانَةُ الكُتُبِ الشَّامِلَة",
+                    color = shelfText,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 10.dp)
                 )
-            )
+            }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        if (showMihrabHub) {
+            SalehReformHubScreen(
+                muhasabahScorePercent = muhasabahScore,
+                nextSalahName = nextPrayer.arabicName,
+                nextSalahCountdown = nextSalahCountdown,
+                fardCompletedToday = fardCount,
+                activeQuoteChunk = activeQuoteChunk,
+                reformTracks = reformTracksList,
+                openSourceBooks = openSourceBooksList,
+                currentThemeMode = uiState?.muhasibThemeMode ?: MuhasibThemeMode.AMOLED_DARK,
+                onToggleThemeMode = { viewModel?.toggleThemeMode() },
+                onTriggerEmergencyPanicSheet = { viewModel?.setPanicSheetVisible(true) },
+                onMarkQuoteChunkRead = { bookId ->
+                    viewModel?.advanceQuoteChunk(bookId)
+                    quoteUpdateTrigger++
+                    Toast.makeText(context, "تم إتمام الشذرة وتحديث العلامة المرجعية ✓", Toast.LENGTH_SHORT).show()
+                },
+                onOpenBookReader = { bookId, page ->
+                    val book = books.find { it.id == bookId || it.id == OpenSourceBookCatalog.findEntry(bookId)?.canonicalAlias }
+                        ?: IslamicBooksSeedData.getInitialBooks().first()
+                    activeReadingBook = book
+                },
+                onTogglePinQuoteToAod = { bookId ->
+                    val entry = OpenSourceBookCatalog.findEntry(bookId)
+                    if (entry != null && entry.sampleChunks.isNotEmpty()) {
+                        val chunk = entry.sampleChunks.first()
+                        QuotePreferences.setPinnedQuote(
+                            context = context,
+                            title = chunk.title,
+                            content = chunk.content,
+                            bookTitle = entry.titleArabic,
+                            bookId = entry.id,
+                            author = entry.authorArabic,
+                            pageNumber = chunk.pageNumber
+                        )
+                        quoteUpdateTrigger++
+                        Toast.makeText(context, "تم تثبيت الاقتباس على شاشة AOD بنجاح 📌", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onOneClickDownloadBook = { bookId ->
+                    viewModel?.downloadOpenSourceBook(bookId)
+                    Toast.makeText(context, "جاري إعداد وتحميل الكتاب للشذرات اليومية ⚡", Toast.LENGTH_SHORT).show()
+                },
+                onToggleBookNotificationWird = { bookId ->
+                    QuotePreferences.setActiveBookId(context, bookId)
+                    onSelectActiveWirdBook(bookId)
+                    BookWirdScheduler.scheduleDailyWirdAlarms(context)
+                    Toast.makeText(context, "تم تفعيل إشعارات الوِرد اليومي للكتاب 🔔", Toast.LENGTH_SHORT).show()
+                }
+            )
+        } else {
+            // Existing Category Shelf view
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 4.dp)
+            ) {
+                // Top Header
+                Column(modifier = Modifier.padding(horizontal = 18.dp)) {
+                    Text(
+                        text = "خِزَانَةُ «الصَّالِح» الإِسْلَامِيَّة",
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            color = appColors.textPrimary,
+                            fontSize = 24.sp
+                        )
+                    )
+                    Text(
+                        text = "كتب التراث الإسلامي المفتوحة المصدر المقسمة للشذرات اليومية",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = SpiritualGoldBright,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.5.sp
+                        )
+                    )
+                }
 
-        // Categories Scrollable Tabs
-        ScrollableTabRow(
-            selectedTabIndex = selectedTabIndex,
-            containerColor = Color.Transparent,
-            contentColor = appColors.primaryAccent,
-            edgePadding = 18.dp,
-            indicator = { tabPositions ->
-                TabRowDefaults.SecondaryIndicator(
-                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                    height = 3.dp,
-                    color = appColors.primaryAccent
-                )
-            },
-            divider = {}
-        ) {
-            BookCategoryTab.entries.forEachIndexed { index, tab ->
-                val isSelected = selectedTabIndex == index
-                Tab(
-                    selected = isSelected,
-                    onClick = {
-                        HapticFeedbackUtil.performLightTick(context)
-                        selectedTabIndex = index
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Categories Scrollable Tabs
+                ScrollableTabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = Color.Transparent,
+                    contentColor = appColors.primaryAccent,
+                    edgePadding = 18.dp,
+                    indicator = { tabPositions ->
+                        TabRowDefaults.SecondaryIndicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                            height = 3.dp,
+                            color = appColors.primaryAccent
+                        )
                     },
-                    text = {
-                        Text(
-                            text = tab.titleArabic,
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 13.sp,
-                                color = if (isSelected) appColors.textPrimary else appColors.textSecondary
-                            )
+                    divider = {}
+                ) {
+                    BookCategoryTab.entries.forEachIndexed { index, tab ->
+                        val isSelected = selectedTabIndex == index
+                        Tab(
+                            selected = isSelected,
+                            onClick = {
+                                HapticFeedbackUtil.performLightTick(context)
+                                selectedTabIndex = index
+                            },
+                            text = {
+                                Text(
+                                    text = tab.titleArabic,
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 13.sp,
+                                        color = if (isSelected) appColors.textPrimary else appColors.textSecondary
+                                    )
+                                )
+                            }
                         )
                     }
-                )
-            }
-        }
+                }
 
-        Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-        // Books List
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            items(filteredBooks, key = { it.id }) { book ->
-                BookCard(
-                    book = book,
-                    isActiveWird = book.id == activeBookId,
-                    onSetAsWird = {
-                        QuotePreferences.setActiveBookId(context, book.id)
-                        activeBookId = book.id
-                        onSelectActiveWirdBook(book.id)
-                        HapticFeedbackUtil.performCompletionRumble(context)
-                        Toast.makeText(context, "تم تعيين ${book.title} كورداً يومياً", Toast.LENGTH_SHORT).show()
-                    },
-                    onOpenReader = {
-                        HapticFeedbackUtil.performLightTick(context)
-                        activeReadingBook = book
+                // Books List
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    items(filteredBooks, key = { it.id }) { book ->
+                        BookCard(
+                            book = book,
+                            isActiveWird = book.id == activeBookId,
+                            onSetAsWird = {
+                                QuotePreferences.setActiveBookId(context, book.id)
+                                activeBookId = book.id
+                                onSelectActiveWirdBook(book.id)
+                                HapticFeedbackUtil.performCompletionRumble(context)
+                                Toast.makeText(context, "تم تعيين ${book.title} كورداً يومياً", Toast.LENGTH_SHORT).show()
+                            },
+                            onOpenReader = {
+                                HapticFeedbackUtil.performLightTick(context)
+                                activeReadingBook = book
+                            }
+                        )
                     }
-                )
-            }
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
+                    item {
+                        Spacer(modifier = Modifier.height(80.dp))
+                    }
+                }
             }
         }
     }

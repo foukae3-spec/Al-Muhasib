@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -67,6 +69,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.Immutable
+import androidx.compose.ui.composed
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextAlign
+import com.example.ui.theme.LocalMuhasibColors
 import com.example.ui.theme.LocalAppColors
 import com.example.ui.theme.RingDetoxColor
 import com.example.ui.theme.RingDhikrColor
@@ -581,3 +595,277 @@ fun FloatingPillNavigationBar(
         }
     }
 }
+
+/**
+ * استجابة لمسية فيزيائية (Apple Spring Micro-Interaction)
+ */
+fun Modifier.appleSpringClickable(
+    enabled: Boolean = true,
+    onClick: () -> Unit
+): Modifier = composed {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.972f else 1f,
+        animationSpec = spring(dampingRatio = 0.75f, stiffness = 450f),
+        label = "appleSpringScale"
+    )
+
+    this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+        .pointerInput(enabled) {
+            if (!enabled) return@pointerInput
+            awaitPointerEventScope {
+                while (true) {
+                    awaitFirstDown(requireUnconsumed = false)
+                    isPressed = true
+                    waitForUpOrCancellation()
+                    isPressed = false
+                }
+            }
+        }
+        .clickable(
+            enabled = enabled,
+            indication = null,
+            interactionSource = remember { MutableInteractionSource() },
+            onClick = onClick
+        )
+}
+
+/**
+ * بطاقة زجاجية ذات إضاءة حواف اتجاهية مخبأة في الذاكرة الرسومية (0.0% Idle GPU/CPU)
+ */
+@Composable
+fun SpecularGlassCard(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 24.dp,
+    accentGlowColor: Color? = null,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val colors = LocalMuhasibColors.current
+    val baseModifier = if (onClick != null) {
+        modifier.appleSpringClickable(onClick = onClick)
+    } else {
+        modifier
+    }
+
+    Box(
+        modifier = baseModifier
+            .clip(RoundedCornerShape(cornerRadius))
+            .drawWithCache {
+                val radiusPx = cornerRadius.toPx()
+                val strokeWidthPx = 1.dp.toPx()
+
+                // إضاءة علوية خافتة ثابتة (Static Cached Radial Luminescence)
+                val ambientBrush = accentGlowColor?.let { glow ->
+                    Brush.radialGradient(
+                        colors = listOf(glow.copy(alpha = if (colors.isDark) 0.16f else 0.10f), Color.Transparent),
+                        center = Offset(size.width * 0.85f, 0f),
+                        radius = size.width * 0.9f
+                    )
+                }
+
+                // حافة زجاجية اتجاهية (Apple Specular Bevel)
+                val borderBrush = Brush.linearGradient(
+                    colors = listOf(
+                        colors.glassSpecularTop,
+                        accentGlowColor?.copy(alpha = 0.28f) ?: colors.glassSpecularTop.copy(alpha = 0.08f),
+                        colors.glassBorderBottom
+                    ),
+                    start = Offset(0f, 0f),
+                    end = Offset(size.width, size.height)
+                )
+
+                onDrawBehind {
+                    drawRoundRect(
+                        color = colors.cardSurface,
+                        cornerRadius = CornerRadius(radiusPx, radiusPx)
+                    )
+                    if (ambientBrush != null) {
+                        drawRoundRect(
+                            brush = ambientBrush,
+                            cornerRadius = CornerRadius(radiusPx, radiusPx)
+                        )
+                    }
+                    drawRoundRect(
+                        brush = borderBrush,
+                        cornerRadius = CornerRadius(radiusPx, radiusPx),
+                        style = Stroke(width = strokeWidthPx)
+                    )
+                }
+            }
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            content = content
+        )
+    }
+}
+
+/**
+ * نموذج بيانات الشذرة القرائية والاقتباس المعروض على الهاتف
+ */
+@Immutable
+data class BookQuoteChunkUiModel(
+    val bookId: String,
+    val bookTitle: String,
+    val authorName: String,
+    val chapterTitle: String,
+    val excerptText: String,
+    val pageNumber: Int,
+    val totalBookPages: Int,
+    val dailyChunkIndex: Int,      // مثلاً: الشذرة 2 من 5 لليوم (ما يعادل صفحتان يومياً)
+    val dailyTargetChunks: Int = 5,
+    val isPinnedToAod: Boolean = false
+)
+
+/**
+ * بطاقة «وِرد العلم والاقتباس الحي» — تعرض الفقرة الحالية من الكتاب المختار
+ * مع أزرار إتمام القراءة وتحديث العلامة المرجعية (Bookmark) أو الفتح في القارئ
+ */
+@Composable
+fun BookWisdomQuoteCard(
+    chunk: BookQuoteChunkUiModel,
+    onMarkChunkRead: (String) -> Unit,
+    onOpenInBookReader: (String, Int) -> Unit,
+    onTogglePinToAod: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalMuhasibColors.current
+
+    SpecularGlassCard(
+        modifier = modifier.fillMaxWidth(),
+        cornerRadius = 26.dp,
+        accentGlowColor = colors.accent
+    ) {
+        // الشريط العلوي: اسم الكتاب + تقدم الصفحتين اليوميتين
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    color = colors.accentSoftGlow,
+                    shape = CircleShape
+                ) {
+                    Text(
+                        text = "📖 وِردُ الصَّالِح",
+                        color = colors.accent,
+                        style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
+                Text(
+                    text = "${chunk.bookTitle} • ${chunk.authorName}",
+                    color = colors.secondaryInk,
+                    style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // مؤشر الشذرات الخمس (صفحتان يومياً)
+            Text(
+                text = "ص ${chunk.pageNumber} • (${chunk.dailyChunkIndex}/${chunk.dailyTargetChunks} اليوم)",
+                color = colors.accent,
+                style = androidx.compose.material3.MaterialTheme.typography.labelMedium
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // نص الفقرة أو الاقتباس بخط المصحف/النسخ المريح للعين
+        Text(
+            text = "« ${chunk.excerptText} »",
+            color = colors.primaryInk,
+            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Start
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // شريط التقدم الدقيق للوِرد اليومي (2+ صفحات/يوم)
+        val progress = (chunk.dailyChunkIndex.toFloat() / chunk.dailyTargetChunks.coerceAtLeast(1)).coerceIn(0f, 1f)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(CircleShape)
+                .drawWithCache {
+                    onDrawBehind {
+                        drawRect(color = colors.divider)
+                        drawRect(
+                            color = colors.accent,
+                            size = size.copy(width = size.width * progress)
+                        )
+                    }
+                }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // أزرار التحكم المتزامنة مع العلامة المرجعية (Unified Bookmark Actions)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 1. زر إتمام الفقرة وتقديم المؤشر تلقائياً
+            Surface(
+                modifier = Modifier
+                    .weight(1.2f)
+                    .appleSpringClickable { onMarkChunkRead(chunk.bookId) },
+                color = colors.accent,
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text(
+                    text = "✓ أتممتُها (تحديث العلامة)",
+                    color = if (colors.isDark) Color(0xFF000000) else Color(0xFFFFFFFF),
+                    style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 11.dp, horizontal = 8.dp)
+                )
+            }
+
+            // 2. زر الدخول المباشر لنفس السطر في الكتاب
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .appleSpringClickable { onOpenInBookReader(chunk.bookId, chunk.pageNumber) },
+                color = colors.elevatedPill,
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text(
+                    text = "مطالعة الكتاب  ←",
+                    color = colors.primaryInk,
+                    style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 11.dp, horizontal = 8.dp)
+                )
+            }
+
+            // 3. زر تثبيت الاقتباس على شاشة القفل AOD
+            Surface(
+                modifier = Modifier.appleSpringClickable { onTogglePinToAod(chunk.bookId) },
+                color = if (chunk.isPinnedToAod) colors.accentSoftGlow else colors.elevatedPill,
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text(
+                    text = if (chunk.isPinnedToAod) "📌 مُثبّت بـ AOD" else "📌 AOD",
+                    color = if (chunk.isPinnedToAod) colors.accent else colors.secondaryInk,
+                    style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(vertical = 11.dp, horizontal = 12.dp)
+                )
+            }
+        }
+    }
+}
+

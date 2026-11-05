@@ -33,6 +33,8 @@ object HapticFeedbackUtil {
      * Authentic crisp mechanical button click sensation.
      * Mimics an instant physical spring switch / tally counter depression with zero decay buzz.
      */
+    fun performMechanicalMisbahaTick(context: Context) = performMechanicalClick(context)
+
     fun performMechanicalClick(context: Context) {
         val vibrator = getVibrator(context) ?: return
         if (!vibrator.hasVibrator()) return

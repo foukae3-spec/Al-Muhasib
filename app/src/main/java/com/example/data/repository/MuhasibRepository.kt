@@ -75,6 +75,68 @@ class MuhasibRepository(private val database: AppDatabase) {
         bookChunkDao.insertAll(chunks)
     }
 
+    suspend fun insertBook(book: IslamicBook) = withContext(Dispatchers.IO) {
+        islamicBookDao.insertOrUpdate(book)
+    }
+
+    /**
+     * توحيد مؤشر العلامة المرجعية (currentChunkCursor):
+     * تحديث العلامة المرجعية في قاعدة البيانات، وإتمام الفقرة، ومزامنة QuotePreferences وودجات الهاتف وشاشة AOD.
+     */
+    suspend fun advanceBookChunkCursor(bookId: String): BookChunk? = withContext(Dispatchers.IO) {
+        val canonicalId = com.example.library.OpenSourceBookCatalog.resolveCanonicalId(bookId)
+        var book = islamicBookDao.getBookByIdDirect(canonicalId)
+        if (book == null && canonicalId != bookId) {
+            book = islamicBookDao.getBookByIdDirect(bookId)
+        }
+        if (book == null) {
+            book = com.example.data.seed.IslamicBooksSeedData.getInitialBooks().find { it.id == canonicalId || it.id == bookId }
+        }
+
+        val currentCursor = book?.currentChunkCursor ?: 0
+        val total = (book?.totalChunks ?: 50).coerceAtLeast(1)
+        val nextCursor = (currentCursor + 1).coerceAtMost(total)
+
+        // Mark current chunk as read
+        val currentChunk = bookChunkDao.getChunkByIndexDirect(book?.id ?: canonicalId, currentCursor)
+        if (currentChunk != null) {
+            bookChunkDao.markChunkRead(currentChunk.id, true, System.currentTimeMillis())
+        }
+
+        // Update database cursor for both IDs if aliased
+        if (book != null) {
+            islamicBookDao.updateCursor(book.id, nextCursor, System.currentTimeMillis())
+            if (canonicalId != book.id) {
+                islamicBookDao.updateCursor(canonicalId, nextCursor, System.currentTimeMillis())
+            }
+        }
+
+        // Retrieve new chunk at nextCursor
+        val newChunk = bookChunkDao.getChunkByIndexDirect(book?.id ?: canonicalId, nextCursor)
+            ?: bookChunkDao.getNextUnreadChunk(book?.id ?: canonicalId)
+
+        // Sync with QuotePreferences and widgets
+        try {
+            val context = com.example.MuhasibApplication.instance
+            if (newChunk != null) {
+                com.example.util.QuotePreferences.setPinnedQuote(
+                    context = context,
+                    title = newChunk.title,
+                    content = newChunk.content,
+                    bookTitle = book?.title ?: "وِرد العلم",
+                    bookId = book?.id ?: canonicalId,
+                    author = book?.author ?: "الإمام ابن قيم الجوزية",
+                    pageNumber = newChunk.pageNumber,
+                    dailyChunkIndex = (nextCursor % 5) + 1,
+                    dailyTargetChunks = 5
+                )
+            }
+            com.example.widget.WidgetUpdateHelper.updateAllWidgets(context)
+        } catch (_: Exception) {}
+
+        newChunk
+    }
+
     // 4-Front Recovery Engine
     val allRecoveryTracks: Flow<List<RecoveryTrack>> = recoveryTrackDao.getAllTracks()
 

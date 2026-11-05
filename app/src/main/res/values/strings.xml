@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Al-Muhasib</string>
+    <string name="aod_dream_label">Al-Muhasib Spiritual AOD</string>
+    <string name="widget_prayer_name">أوقات الصلاة والمُحَاسِب</string>
+    <string name="widget_prayer_desc">عرض الصلاة القادمة والعد التنازلي وحالة الفروض الخمسة</string>
+    <string name="widget_dhikr_name">خاتم الاستغفار والتسبيح</string>
+    <string name="widget_dhikr_desc">عداد تسبيح تفاعلي سريع بنقرة واحدة من الشاشة الرئيسية</string>
+    <string name="widget_sobriety_name">حِصْن التعافي والطهارة</string>
+    <string name="widget_sobriety_desc">متابعة مسار النقاء وعداد الثبات مع زر النجدة السريع</string>
+</resources>

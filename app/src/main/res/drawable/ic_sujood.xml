@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Ground / Prayer Mat Baseline -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M 2.5,20 H 21.5 C 21.78,20 22,20.22 22,20.5 C 22,20.78 21.78,21 21.5,21 H 2.5 C 2.22,21 2,20.78 2,20.5 C 2,20.22 2.22,20 2.5,20 Z" />
+    <!-- Prostrating Head touching prayer mat -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M 4.8,17.5 m -1.7,0 a 1.7,1.7 0 1,1 3.4,0 a 1.7,1.7 0 1,1 -3.4,0" />
+    <!-- Body in Sujood (Palms, Forearms, Spine, Hips, Knees, Feet) -->
+    <path
+        android:strokeWidth="1.8"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M 7.2,20.5 L 8.2,16.8 L 10.5,14.5 Q 14,13 16.8,12.8 Q 17.5,15 17.5,20.5 L 21.5,20.5" />
+</vector>

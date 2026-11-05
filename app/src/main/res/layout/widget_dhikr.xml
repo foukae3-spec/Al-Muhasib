@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_dhikr_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_dark_green"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <!-- Header: Time-Context Category & Sequence Progress -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_widget_dhikr_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="أَذْكَارُ الصَّبَاحِ"
+            android:textColor="#10B981"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_widget_dhikr_target"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="الذكر 1 من 3"
+            android:textColor="#8FAFA0"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Center Body: The actual Dhikr in Arabic -->
+    <LinearLayout
+        android:id="@+id/ll_widget_dhikr_body"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
+
+        <TextView
+            android:id="@+id/tv_widget_dhikr_arabic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ"
+            android:textColor="#EDF8F2"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:lineSpacingMultiplier="1.2"
+            android:maxLines="3"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <!-- Bottom Action Bar: Counter + "+1" Button + "Done / Next" Button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_widget_dhikr_count"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0 / 3"
+            android:textColor="#34D399"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btn_widget_increment_dhikr"
+            android:layout_width="56dp"
+            android:layout_height="38dp"
+            android:background="@drawable/widget_btn_emerald"
+            android:text="+1"
+            android:textColor="#041008"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btn_widget_done_dhikr"
+            android:layout_width="66dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/widget_btn_inset"
+            android:text="تم ✓"
+            android:textColor="#34D399"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_sobriety_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_dark_green"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Top Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="حِصْنُ التَّعَافِي وَالطَّهَارَة"
+            android:textColor="#F59E0B"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_widget_clean_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ثبات"
+            android:textColor="#8FAFA0"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Center Streak Count -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_widget_streak_days"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="14 يوماً"
+                android:textColor="#FBBF24"
+                android:textSize="26sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_widget_streak_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="مسار التعافي والنقاء"
+                android:textColor="#8FAFA0"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Emergency Panic Quick-Action Button -->
+        <Button
+            android:id="@+id/btn_widget_panic"
+            android:layout_width="85dp"
+            android:layout_height="44dp"
+            android:background="@drawable/widget_btn_inset"
+            android:text="نجدة ⚠️"
+            android:textColor="#EF4444"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Bottom Habits Status -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_widget_workout_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="تمرين: لم يكتمل"
+            android:textColor="#8FAFA0"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/tv_widget_shower_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="دش بارد: لم يكتمل"
+            android:textColor="#8FAFA0"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+</LinearLayout>

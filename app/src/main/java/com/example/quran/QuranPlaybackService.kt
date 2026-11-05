@@ -25,6 +25,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import androidx.media.session.MediaButtonReceiver
 import com.example.MainActivity
@@ -176,7 +177,7 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
         if (!isNoisyReceiverRegistered) {
             try {
                 val filter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
-                registerReceiver(noisyReceiver, filter)
+                ContextCompat.registerReceiver(this, noisyReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
                 isNoisyReceiverRegistered = true
             } catch (e: Exception) {
                 // Ignore receiver registration error
@@ -192,6 +193,59 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
                 // Ignore
             }
             isNoisyReceiverRegistered = false
+        }
+    }
+
+    private var isScreenOn = true
+    private var isScreenReceiverRegistered = false
+
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> {
+                    isScreenOn = false
+                    // ULTRA-LOW POWER: completely halt position tracking coroutine when screen is off
+                    stopProgressTracker()
+                    notifySleepTimerScreenStateChanged()
+                }
+                Intent.ACTION_SCREEN_ON -> {
+                    isScreenOn = true
+                    // Sample position immediately on screen-on so in-app UI slider is fresh
+                    mediaPlayer?.let { player ->
+                        if (player.isPlaying) {
+                            _playbackPositionMs.value = player.currentPosition.toLong()
+                            startProgressTracker()
+                        }
+                    }
+                    notifySleepTimerScreenStateChanged()
+                }
+            }
+        }
+    }
+
+    private fun registerScreenReceiver() {
+        if (!isScreenReceiverRegistered) {
+            try {
+                val filter = IntentFilter().apply {
+                    addAction(Intent.ACTION_SCREEN_OFF)
+                    addAction(Intent.ACTION_SCREEN_ON)
+                }
+                ContextCompat.registerReceiver(this, screenReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+                isScreenReceiverRegistered = true
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+    }
+
+    private fun unregisterScreenReceiver() {
+        if (isScreenReceiverRegistered) {
+            try {
+                unregisterReceiver(screenReceiver)
+            } catch (e: Exception) {
+                // Ignore
+            }
+            isScreenReceiverRegistered = false
         }
     }
 
@@ -211,6 +265,7 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
             setReferenceCounted(false)
         }
 
+        registerScreenReceiver()
         initMediaSession()
         createNotificationChannel()
         cachedAlbumArt = generateQuranEmblemBitmap()
@@ -367,6 +422,8 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
             }
 
             player.setOnErrorListener { _, what, extra ->
+                stopProgressTracker()
+                releaseWakeLock()
                 _playerState.update {
                     it.copy(
                         isPlaying = false,
@@ -381,6 +438,8 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
 
             player.prepareAsync()
         } catch (e: Exception) {
+            stopProgressTracker()
+            releaseWakeLock()
             _playerState.update {
                 it.copy(
                     isPlaying = false,
@@ -506,10 +565,13 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
         }
     }
 
+    private var sleepTimerTargetEndTimeMs: Long = 0L
+
     private fun handleSleepTimerConfig(minutes: Int) {
         sleepTimerJob?.cancel()
         if (minutes < 0) {
             // Cancel timer
+            sleepTimerTargetEndTimeMs = 0L
             _playerState.update {
                 it.copy(
                     isSleepTimerActive = false,
@@ -523,6 +585,7 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
 
         if (minutes == 0) {
             // End of surah
+            sleepTimerTargetEndTimeMs = 0L
             _playerState.update {
                 it.copy(
                     isSleepTimerActive = true,
@@ -535,6 +598,7 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
         }
 
         val totalSeconds = minutes * 60L
+        sleepTimerTargetEndTimeMs = System.currentTimeMillis() + (totalSeconds * 1000L)
         _playerState.update {
             it.copy(
                 isSleepTimerActive = true,
@@ -544,19 +608,40 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
             )
         }
 
+        startSleepTimerJob()
+    }
+
+    private fun startSleepTimerJob() {
+        sleepTimerJob?.cancel()
+        if (sleepTimerTargetEndTimeMs <= 0L) return
+
         sleepTimerJob = serviceScope.launch {
-            var remaining = totalSeconds
-            while (remaining > 0 && isActive) {
-                delay(1000L)
-                remaining--
+            while (isActive) {
+                val now = System.currentTimeMillis()
+                val remainingMs = sleepTimerTargetEndTimeMs - now
+                if (remainingMs <= 0L) {
+                    break
+                }
+                val remainingSeconds = (remainingMs + 999L) / 1000L
+                val remainingMinutes = ((remainingSeconds + 59L) / 60L).toInt()
                 _playerState.update {
                     it.copy(
-                        sleepTimerSecondsRemaining = remaining,
-                        sleepTimerMinutesLeft = ((remaining + 59) / 60).toInt()
+                        sleepTimerSecondsRemaining = remainingSeconds,
+                        sleepTimerMinutesLeft = remainingMinutes
                     )
                 }
+
+                if (isScreenOn) {
+                    delay(1000L)
+                } else {
+                    // Deep sleep mode: screen is OFF, sleep directly for remaining duration
+                    // Zero CPU wakeups while user is sleeping with phone locked
+                    delay(remainingMs)
+                }
             }
+
             // Sleep timer finished: pause playback
+            sleepTimerTargetEndTimeMs = 0L
             _playerState.update {
                 it.copy(
                     isSleepTimerActive = false,
@@ -568,20 +653,32 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
         }
     }
 
+    private fun notifySleepTimerScreenStateChanged() {
+        if (_playerState.value.isSleepTimerActive && sleepTimerTargetEndTimeMs > 0L) {
+            startSleepTimerJob()
+        }
+    }
+
     private fun startProgressTracker() {
         progressTrackingJob?.cancel()
+        if (!isScreenOn) return // Do not track while screen is off
+        val player = mediaPlayer
+        if (player == null || !player.isPlaying) return
+
         progressTrackingJob = serviceScope.launch {
-            while (isActive) {
-                val player = mediaPlayer
-                if (player != null && player.isPlaying) {
-                    val pos = player.currentPosition.toLong()
-                    val dur = player.duration.toLong().coerceAtLeast(0L)
+            while (isActive && isScreenOn) {
+                val p = mediaPlayer
+                if (p != null && p.isPlaying) {
+                    val pos = p.currentPosition.toLong()
+                    val dur = p.duration.toLong().coerceAtLeast(0L)
                     _playbackPositionMs.value = pos
                     if (dur > 0 && dur != _playerState.value.durationMs) {
                         _playerState.update { it.copy(durationMs = dur) }
                     }
+                } else {
+                    break
                 }
-                delay(200L)
+                delay(1000L) // 1s polling only while screen is ON
             }
         }
     }
@@ -596,6 +693,7 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
         unregisterNoisyReceiver()
         stopProgressTracker()
         sleepTimerJob?.cancel()
+        sleepTimerTargetEndTimeMs = 0L
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
@@ -862,8 +960,10 @@ class QuranPlaybackService : Service(), AudioManager.OnAudioFocusChangeListener 
     override fun onDestroy() {
         resumeOnFocusGain = false
         unregisterNoisyReceiver()
+        unregisterScreenReceiver()
         stopProgressTracker()
         sleepTimerJob?.cancel()
+        sleepTimerTargetEndTimeMs = 0L
         mediaSession?.run {
             isActive = false
             release()

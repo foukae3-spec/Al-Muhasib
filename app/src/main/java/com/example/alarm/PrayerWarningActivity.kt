@@ -13,6 +13,9 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.LinearEasing
@@ -79,6 +82,7 @@ import java.lang.ref.WeakReference
 class PrayerWarningActivity : ComponentActivity() {
 
     private var vibrator: Vibrator? = null
+    private var autoDismissJob: Job? = null
 
     companion object {
         private var activeInstance: WeakReference<PrayerWarningActivity>? = null
@@ -94,6 +98,13 @@ class PrayerWarningActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         activeInstance = WeakReference(this)
+
+        // Safety: Auto-terminate emergency alarm and vibrator after 90 seconds to prevent infinite screen-on and motor battery drain
+        autoDismissJob = lifecycleScope.launch {
+            delay(90_000L)
+            stopAlarm()
+            finish()
+        }
 
         onBackPressedDispatcher.addCallback(this) {
             // Prevent accidental dismissal by back press; must use action buttons
@@ -172,6 +183,8 @@ class PrayerWarningActivity : ComponentActivity() {
 
     private fun stopAlarm() {
         try {
+            autoDismissJob?.cancel()
+            autoDismissJob = null
             PrayerAdhanPlayer.stop()
             vibrator?.cancel()
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager

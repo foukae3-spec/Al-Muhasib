@@ -10,8 +10,10 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
@@ -48,8 +50,12 @@ class AodActivity : ComponentActivity(), SensorEventListener {
 
     private var isPocketActive = mutableStateOf(false)
     private var dismissReceiver: BroadcastReceiver? = null
+    private var batteryReceiver: BroadcastReceiver? = null
     private var tap10sJob: Job? = null
     private var pocketJob: Job? = null
+    private var lightTimeoutJob: Job? = null
+    private var prolongedPocketJob: Job? = null
+    private var hasPendingWidgetUpdate = false
     private var lastAppliedBrightness: Float = -1f
     private var lastLightSampleTime: Long = 0L
     private var currentDhikrIncrementAction: (() -> Unit)? = null
@@ -70,6 +76,7 @@ class AodActivity : ComponentActivity(), SensorEventListener {
         fun finishIfActive(): Boolean {
             val inst = activeInstance
             if (inst != null && !inst.isFinishing) {
+                inst.stopSensors()
                 inst.finish()
                 activeInstance = null
                 isAodResumed = false
@@ -116,10 +123,14 @@ class AodActivity : ComponentActivity(), SensorEventListener {
         configureAodWindow()
 
         // Setup Proximity & Light Sensors
-        initSensors()
+        startSensors()
 
         // Register dismissal receiver when phone is unlocked (Android 14+ safe)
         registerDismissReceiver()
+
+        // Register runtime battery saver cutoff receiver to eliminate drain when battery < 15%
+        registerBatterySaverReceiver()
+        checkBatteryAndFinishIfRestricted()
 
         val repository = MuhasibApplication.instance.repository
 
@@ -134,44 +145,56 @@ class AodActivity : ComponentActivity(), SensorEventListener {
                 AodDisplayContent(
                     istighfarCount = sobrietyState?.istighfarTodayCount ?: 0,
                     onIncrementIstighfar = {
+                        hasPendingWidgetUpdate = true
+                        resetTap10sTimer()
+                        resetProlongedPocketTimer()
                         lifecycleScope.launch {
                             repository.incrementIstighfarCount()
-                            WidgetUpdateHelper.updateAllWidgets(this@AodActivity)
                         }
                     },
                     subhanAllahCount = sobrietyState?.subhanAllahTodayCount ?: 0,
                     onIncrementSubhanAllah = {
+                        hasPendingWidgetUpdate = true
+                        resetTap10sTimer()
+                        resetProlongedPocketTimer()
                         lifecycleScope.launch {
                             repository.incrementSubhanAllahCount()
-                            WidgetUpdateHelper.updateAllWidgets(this@AodActivity)
                         }
                     },
                     alhamdulillahCount = sobrietyState?.alhamdulillahTodayCount ?: 0,
                     onIncrementAlhamdulillah = {
+                        hasPendingWidgetUpdate = true
+                        resetTap10sTimer()
+                        resetProlongedPocketTimer()
                         lifecycleScope.launch {
                             repository.incrementAlhamdulillahCount()
-                            WidgetUpdateHelper.updateAllWidgets(this@AodActivity)
                         }
                     },
                     allahuAkbarCount = sobrietyState?.allahuAkbarTodayCount ?: 0,
                     onIncrementAllahuAkbar = {
+                        hasPendingWidgetUpdate = true
+                        resetTap10sTimer()
+                        resetProlongedPocketTimer()
                         lifecycleScope.launch {
                             repository.incrementAllahuAkbarCount()
-                            WidgetUpdateHelper.updateAllWidgets(this@AodActivity)
                         }
                     },
                     laIlahaIllallahCount = sobrietyState?.laIlahaIllallahTodayCount ?: 0,
                     onIncrementLaIlahaIllallah = {
+                        hasPendingWidgetUpdate = true
+                        resetTap10sTimer()
+                        resetProlongedPocketTimer()
                         lifecycleScope.launch {
                             repository.incrementLaIlahaIllallahCount()
-                            WidgetUpdateHelper.updateAllWidgets(this@AodActivity)
                         }
                     },
                     tasbi7Count = sobrietyState?.tasbi7TodayCount ?: 0,
                     onIncrementTasbi7 = {
+                        hasPendingWidgetUpdate = true
+                        resetTap10sTimer()
+                        resetProlongedPocketTimer()
                         lifecycleScope.launch {
                             repository.incrementTasbi7Count()
-                            WidgetUpdateHelper.updateAllWidgets(this@AodActivity)
                         }
                     },
                     onUnlock = {
@@ -195,6 +218,7 @@ class AodActivity : ComponentActivity(), SensorEventListener {
                                 finish()
                             }
                         }
+                        checkBatteryAndFinishIfRestricted()
                         sampleAmbientLightOnce()
                     },
                     onSelectedDhikrChanged = { index, _, onIncrement, target ->
@@ -227,6 +251,11 @@ class AodActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        startSensors()
+    }
+
     override fun onResume() {
         super.onResume()
         isAodResumed = true
@@ -249,6 +278,16 @@ class AodActivity : ComponentActivity(), SensorEventListener {
     override fun onPause() {
         super.onPause()
         isAodResumed = false
+    }
+
+    override fun onStop() {
+        super.onStop()
+        isAodResumed = false
+        stopSensors()
+        if (hasPendingWidgetUpdate) {
+            hasPendingWidgetUpdate = false
+            WidgetUpdateHelper.updateAllWidgets(this)
+        }
     }
 
     // ponytail: MIUI "Tap to Show for 10s" Mode touch dispatcher
@@ -322,7 +361,7 @@ class AodActivity : ComponentActivity(), SensorEventListener {
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
 
         // Note: Strictly do NOT add FLAG_ALLOW_LOCK_WHILE_SCREEN_ON as it instructs Keyguard to draw over AOD
-        val keepScreenFlag = if (!isPocketActive.value) WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON else 0
+        val keepScreenFlag = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         @Suppress("DEPRECATION")
         window.addFlags(
             keepScreenFlag or
@@ -376,13 +415,33 @@ class AodActivity : ComponentActivity(), SensorEventListener {
     fun sampleAmbientLightOnce() {
         if (!AodManager.isAutoBrightnessEnabled(this) || isPocketActive.value) return
         try {
-            lightSensor?.let {
-                sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+            lightSensor?.let { sensor ->
+                sensorManager?.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+                // Safety: forceful unregister after 1500ms to guarantee no sensor HAL power drain
+                lightTimeoutJob?.cancel()
+                lightTimeoutJob = lifecycleScope.launch {
+                    delay(1500L)
+                    try {
+                        sensorManager?.unregisterListener(this@AodActivity, sensor)
+                    } catch (_: Exception) {}
+                }
             }
         } catch (_: Exception) {}
     }
 
-    private fun initSensors() {
+    private fun resetProlongedPocketTimer() {
+        prolongedPocketJob?.cancel()
+        if (isPocketActive.value) {
+            prolongedPocketJob = lifecycleScope.launch {
+                // If phone remains covered in pocket for 15 minutes with no interaction, finish AOD
+                // to allow full Doze and avoid keeping screen-on and proximity sensor HAL active
+                delay(15 * 60 * 1000L)
+                finish()
+            }
+        }
+    }
+
+    private fun startSensors() {
         try {
             sensorManager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager
 
@@ -395,13 +454,25 @@ class AodActivity : ComponentActivity(), SensorEventListener {
             }
 
             // Hardware light sensor: sample ambient light once at startup, then unregister immediately
-            if (AodManager.isAutoBrightnessEnabled(this)) {
+            if (AodManager.isAutoBrightnessEnabled(this) && !isPocketActive.value) {
                 lightSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_LIGHT)
                 sampleAmbientLightOnce()
             }
         } catch (e: Exception) {
             // Ignore if device lacks sensor
         }
+    }
+
+    fun stopSensors() {
+        lightTimeoutJob?.cancel()
+        lightTimeoutJob = null
+        pocketJob?.cancel()
+        pocketJob = null
+        prolongedPocketJob?.cancel()
+        prolongedPocketJob = null
+        try {
+            sensorManager?.unregisterListener(this)
+        } catch (_: Exception) {}
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -411,6 +482,8 @@ class AodActivity : ComponentActivity(), SensorEventListener {
             Sensor.TYPE_PROXIMITY -> {
                 if (!AodManager.isPocketModeEnabled(this)) {
                     isPocketActive.value = false
+                    prolongedPocketJob?.cancel()
+                    prolongedPocketJob = null
                     return
                 }
                 val distance = event.values[0]
@@ -423,8 +496,8 @@ class AodActivity : ComponentActivity(), SensorEventListener {
                     pocketJob = lifecycleScope.launch {
                         delay(600) // Must stay covered for at least 600ms
                         isPocketActive.value = true
+                        resetProlongedPocketTimer()
                         try {
-                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                             val lp = window.attributes
                             lp.screenBrightness = 0.0f
                             lastAppliedBrightness = 0.0f
@@ -435,8 +508,9 @@ class AodActivity : ComponentActivity(), SensorEventListener {
                     }
                 } else {
                     isPocketActive.value = false
+                    prolongedPocketJob?.cancel()
+                    prolongedPocketJob = null
                     try {
-                        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                         val lp = window.attributes
                         val restoredBrightness = if (AodManager.isAutoBrightnessEnabled(this@AodActivity)) {
                             lastKnownLux?.let { calculateAutoBrightness(it) } ?: AodManager.getScreenBrightness(this@AodActivity)
@@ -453,6 +527,15 @@ class AodActivity : ComponentActivity(), SensorEventListener {
             }
 
             Sensor.TYPE_LIGHT -> {
+                // Cancel safety timeout since reading was received
+                lightTimeoutJob?.cancel()
+                lightTimeoutJob = null
+
+                // ULTRA-LOW POWER: Always unregister immediately to stop sensor HAL wakeups
+                try {
+                    sensorManager?.unregisterListener(this, lightSensor)
+                } catch (_: Exception) {}
+
                 // Ignore light readings while in pocket
                 if (isPocketActive.value) return
 
@@ -472,14 +555,6 @@ class AodActivity : ComponentActivity(), SensorEventListener {
                             // Ignore
                         }
                     }
-                }
-
-                // ULTRA-LOW POWER: Unregister light sensor immediately once lux reading is captured!
-                // Eliminates continuous 5-10 Hz sensor HAL wakeups and CPU interrupts.
-                try {
-                    sensorManager?.unregisterListener(this, lightSensor)
-                } catch (e: Exception) {
-                    // Ignore
                 }
             }
         }
@@ -508,6 +583,53 @@ class AodActivity : ComponentActivity(), SensorEventListener {
         )
     }
 
+    private fun registerBatterySaverReceiver() {
+        if (!AodManager.isBatterySaverDisableEnabled(this)) return
+        batteryReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    PowerManager.ACTION_POWER_SAVE_MODE_CHANGED,
+                    Intent.ACTION_BATTERY_LOW -> {
+                        checkBatteryAndFinishIfRestricted()
+                    }
+                }
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+            addAction(Intent.ACTION_BATTERY_LOW)
+        }
+        try {
+            ContextCompat.registerReceiver(
+                this,
+                batteryReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        } catch (_: Exception) {}
+    }
+
+    private fun checkBatteryAndFinishIfRestricted() {
+        if (!AodManager.isBatterySaverDisableEnabled(this)) return
+        val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+        val isPowerSave = powerManager?.isPowerSaveMode == true
+
+        var batteryPct = 100f
+        try {
+            val batteryFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+            val batteryStatus = registerReceiver(null, batteryFilter)
+            val level = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+            val scale = batteryStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+            if (level >= 0 && scale > 0) {
+                batteryPct = level * 100f / scale
+            }
+        } catch (_: Exception) {}
+
+        if (AodLockService.shouldBlockAodDueToBattery(true, isPowerSave, batteryPct)) {
+            finish()
+        }
+    }
+
     private fun unlockDeviceAndExit() {
         // ponytail: finish AodActivity to seamlessly reveal native Android Lock Screen (NOT password prompt)
         finish()
@@ -515,33 +637,32 @@ class AodActivity : ComponentActivity(), SensorEventListener {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-            // Count with hardware volume rocker (blind pocket counting)
-            if (!isPocketActive.value) {
-                val action = currentDhikrIncrementAction
-                val target = currentDhikrTarget
-                val dhikrIdx = currentDhikrIndex
-                val repository = MuhasibApplication.instance.repository
-                lifecycleScope.launch {
-                    val current = repository.getSobrietyStateDirect()
-                    val currentCount = when (dhikrIdx) {
-                        0 -> current?.istighfarTodayCount ?: 0
-                        1 -> current?.subhanAllahTodayCount ?: 0
-                        2 -> current?.alhamdulillahTodayCount ?: 0
-                        3 -> current?.allahuAkbarTodayCount ?: 0
-                        4 -> current?.laIlahaIllallahTodayCount ?: 0
-                        else -> current?.istighfarTodayCount ?: 0
-                    }
-                    val nextCount = currentCount + 1
-                    if (action != null) {
-                        action.invoke()
-                    } else {
-                        repository.incrementIstighfarCount()
-                        WidgetUpdateHelper.updateAllWidgets(this@AodActivity)
-                    }
-                    val profile = AodManager.getMisbahaHapticProfile(this@AodActivity)
-                    HapticFeedbackUtil.performMisbahaFeedback(this@AodActivity, profile, nextCount, target)
+            // Count with hardware volume rocker (blind pocket counting works whether in pocket or not)
+            val action = currentDhikrIncrementAction
+            val target = currentDhikrTarget
+            val dhikrIdx = currentDhikrIndex
+            val repository = MuhasibApplication.instance.repository
+            hasPendingWidgetUpdate = true
+            resetTap10sTimer()
+            resetProlongedPocketTimer()
+            lifecycleScope.launch {
+                val current = repository.getSobrietyStateDirect()
+                val currentCount = when (dhikrIdx) {
+                    0 -> current?.istighfarTodayCount ?: 0
+                    1 -> current?.subhanAllahTodayCount ?: 0
+                    2 -> current?.alhamdulillahTodayCount ?: 0
+                    3 -> current?.allahuAkbarTodayCount ?: 0
+                    4 -> current?.laIlahaIllallahTodayCount ?: 0
+                    else -> current?.istighfarTodayCount ?: 0
                 }
-                resetTap10sTimer()
+                val nextCount = currentCount + 1
+                if (action != null) {
+                    action.invoke()
+                } else {
+                    repository.incrementIstighfarCount()
+                }
+                val profile = AodManager.getMisbahaHapticProfile(this@AodActivity)
+                HapticFeedbackUtil.performMisbahaFeedback(this@AodActivity, profile, nextCount, target)
             }
             return true // Suppress Android system volume overlay
         }
@@ -558,11 +679,10 @@ class AodActivity : ComponentActivity(), SensorEventListener {
 
     override fun onDestroy() {
         tap10sJob?.cancel()
-        pocketJob?.cancel()
-        try {
-            sensorManager?.unregisterListener(this)
-        } catch (e: Exception) {
-            // Ignore
+        stopSensors()
+        if (hasPendingWidgetUpdate) {
+            hasPendingWidgetUpdate = false
+            WidgetUpdateHelper.updateAllWidgets(this)
         }
         dismissReceiver?.let {
             try {
@@ -571,6 +691,14 @@ class AodActivity : ComponentActivity(), SensorEventListener {
                 // Ignore
             }
             dismissReceiver = null
+        }
+        batteryReceiver?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (e: Exception) {
+                // Ignore
+            }
+            batteryReceiver = null
         }
         if (activeInstance == this) {
             activeInstance = null

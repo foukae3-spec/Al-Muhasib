@@ -107,10 +107,10 @@ object AodManager {
         prefs.edit().putInt(KEY_DISPLAY_MODE, mode).apply()
     }
 
-    // ponytail: battery saver cut-off toggle (default false so MIUI battery optimization doesn't block AOD)
+    // ponytail: battery saver cut-off toggle (default true to preserve device battery below 15%)
     fun isBatterySaverDisableEnabled(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getBoolean(KEY_BATTERY_SAVER_DISABLE, false)
+        return prefs.getBoolean(KEY_BATTERY_SAVER_DISABLE, true)
     }
 
     fun setBatterySaverDisableEnabled(context: Context, enabled: Boolean) {

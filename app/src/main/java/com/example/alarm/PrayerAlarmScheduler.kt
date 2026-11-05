@@ -51,7 +51,7 @@ object PrayerAlarmScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        scheduleExact(context, alarmManager, triggerEpochMs, pendingIntent)
+        scheduleInexactOrIdle(alarmManager, triggerEpochMs, pendingIntent)
     }
 
     // Pure calculation helper for next prayer target
@@ -216,6 +216,30 @@ object PrayerAlarmScheduler {
                     pendingIntent
                 )
             }
+        }
+    }
+
+    private fun scheduleInexactOrIdle(alarmManager: AlarmManager, triggerEpochMs: Long, pendingIntent: PendingIntent) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerEpochMs,
+                    pendingIntent
+                )
+            } else {
+                alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerEpochMs,
+                    pendingIntent
+                )
+            }
+        } catch (_: SecurityException) {
+            alarmManager.set(
+                AlarmManager.RTC_WAKEUP,
+                triggerEpochMs,
+                pendingIntent
+            )
         }
     }
 

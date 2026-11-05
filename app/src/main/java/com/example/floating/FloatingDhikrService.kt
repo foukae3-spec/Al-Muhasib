@@ -3,8 +3,10 @@ package com.example.floating
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.PixelFormat
@@ -21,6 +23,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.example.MainActivity
 import com.example.MuhasibApplication
 import com.example.R
@@ -31,8 +34,10 @@ import com.example.util.IslamicCalendarUtil
 import com.example.widget.WidgetUpdateHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.lang.ref.WeakReference
 
@@ -45,6 +50,16 @@ class FloatingDhikrService : Service() {
     private var windowParams: WindowManager.LayoutParams? = null
 
     private var currentItem: DhikrItem? = null
+    private var screenReceiver: BroadcastReceiver? = null
+    private var pendingWidgetUpdateJob: Job? = null
+
+    private fun scheduleWidgetUpdate() {
+        pendingWidgetUpdateJob?.cancel()
+        pendingWidgetUpdateJob = serviceScope.launch {
+            delay(500L) // 500ms debounce to prevent IPC/Room thrashing during rapid clicks
+            WidgetUpdateHelper.updateAllWidgets(this@FloatingDhikrService)
+        }
+    }
 
     companion object {
         private var activeInstance: WeakReference<FloatingDhikrService>? = null
@@ -86,7 +101,38 @@ class FloatingDhikrService : Service() {
         }
 
         initFloatingWindow()
+        registerScreenStateReceiver()
         refreshDhikr()
+    }
+
+    private fun registerScreenStateReceiver() {
+        if (screenReceiver != null) return
+        screenReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    Intent.ACTION_SCREEN_OFF -> {
+                        // ULTRA-LOW POWER: Hide floating view when screen turns off to stop GPU/WindowManager compositing
+                        floatingView?.visibility = View.GONE
+                    }
+                    Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> {
+                        floatingView?.visibility = View.VISIBLE
+                    }
+                }
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        try {
+            ContextCompat.registerReceiver(
+                this,
+                screenReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        } catch (_: Exception) {}
     }
 
     private fun startForegroundNotification() {
@@ -207,14 +253,14 @@ class FloatingDhikrService : Service() {
                     serviceScope.launch {
                         MuhasibApplication.instance.repository.markDhikrDone(item.id)
                         refreshDhikr()
-                        WidgetUpdateHelper.updateAllWidgets(this@FloatingDhikrService)
+                        scheduleWidgetUpdate()
                     }
                 } else {
                     HapticFeedbackUtil.performDhikrTick(this)
                     serviceScope.launch {
                         MuhasibApplication.instance.repository.incrementDhikr(item.id)
                         refreshDhikr()
-                        WidgetUpdateHelper.updateAllWidgets(this@FloatingDhikrService)
+                        scheduleWidgetUpdate()
                     }
                 }
             } else {
@@ -224,7 +270,7 @@ class FloatingDhikrService : Service() {
                     val cat = IslamicCalendarUtil.getCurrentTimeDhikrCategory()
                     MuhasibApplication.instance.repository.resetCategoryDhikr(cat.name)
                     refreshDhikr()
-                    WidgetUpdateHelper.updateAllWidgets(this@FloatingDhikrService)
+                    scheduleWidgetUpdate()
                 }
             }
         }
@@ -252,7 +298,7 @@ class FloatingDhikrService : Service() {
             serviceScope.launch {
                 MuhasibApplication.instance.repository.incrementDhikr(item.id)
                 refreshDhikr()
-                WidgetUpdateHelper.updateAllWidgets(this@FloatingDhikrService)
+                scheduleWidgetUpdate()
             }
         }
 
@@ -264,7 +310,7 @@ class FloatingDhikrService : Service() {
                 serviceScope.launch {
                     MuhasibApplication.instance.repository.markDhikrDone(item.id)
                     refreshDhikr()
-                    WidgetUpdateHelper.updateAllWidgets(this@FloatingDhikrService)
+                    scheduleWidgetUpdate()
                 }
             } else {
                 HapticFeedbackUtil.performLightTick(this)
@@ -272,7 +318,7 @@ class FloatingDhikrService : Service() {
                     val cat = IslamicCalendarUtil.getCurrentTimeDhikrCategory()
                     MuhasibApplication.instance.repository.resetCategoryDhikr(cat.name)
                     refreshDhikr()
-                    WidgetUpdateHelper.updateAllWidgets(this@FloatingDhikrService)
+                    scheduleWidgetUpdate()
                 }
             }
         }
@@ -416,7 +462,17 @@ class FloatingDhikrService : Service() {
 
     override fun onDestroy() {
         activeInstance = null
+        pendingWidgetUpdateJob?.cancel()
+        pendingWidgetUpdateJob = null
         serviceScope.cancel()
+        screenReceiver?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (e: Exception) {
+                // Ignore
+            }
+            screenReceiver = null
+        }
         floatingView?.let {
             try {
                 windowManager?.removeView(it)

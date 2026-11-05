@@ -55,6 +55,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.components.AppleGlassCard
 import com.example.ui.components.PillShape
@@ -87,10 +90,22 @@ fun QiblaScreen(
 
     var wasAligned by remember { mutableStateOf(false) }
 
-    DisposableEffect(prayerSettings.latitude, prayerSettings.longitude) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, prayerSettings.latitude, prayerSettings.longitude) {
         sensorManager.updateLocation(prayerSettings.latitude, prayerSettings.longitude)
-        sensorManager.startListening()
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                sensorManager.startListening()
+            } else if (event == Lifecycle.Event.ON_PAUSE) {
+                sensorManager.stopListening()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            sensorManager.startListening()
+        }
         onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
             sensorManager.stopListening()
         }
     }

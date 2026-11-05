@@ -38,7 +38,7 @@ data class MuhasibUiState(
     val isFloatingDhikrEnabled: Boolean = false,
     val isAutoBrightnessEnabled: Boolean = true,
     val aodDisplayMode: Int = AodManager.MODE_ALWAYS_ON,
-    val isBatterySaverCutoffEnabled: Boolean = false,
+    val isBatterySaverCutoffEnabled: Boolean = true,
     val misbahaHapticProfile: Int = AodManager.HAPTIC_MECHANICAL,
     val isPocketModeEnabled: Boolean = true,
     val aodClockStyle: Int = AodManager.CLOCK_DIGITAL_MINIMAL,

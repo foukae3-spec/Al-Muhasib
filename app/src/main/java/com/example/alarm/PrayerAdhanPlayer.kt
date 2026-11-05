@@ -16,7 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
-// ponytail: lightweight reactive audio player supporting authentic Adhan and system fallback with 180s timeout
+// ponytail: lightweight reactive audio player supporting authentic Adhan and system fallback with 90s timeout
 object PrayerAdhanPlayer {
     val isPlaying = MutableStateFlow(false)
     val currentAlarmPrayer = MutableStateFlow<String?>(null)
@@ -28,12 +28,12 @@ object PrayerAdhanPlayer {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     @Synchronized
-    fun play(context: Context?, prayerName: String = "الصلاة", timeoutMs: Long = 180_000L) {
+    fun play(context: Context?, prayerName: String = "الصلاة", timeoutMs: Long = 90_000L) {
         stop()
         isPlaying.value = true
         currentAlarmPrayer.value = prayerName
 
-        // ponytail: automatically terminate playback after timeout (default: 180s / 3 minutes)
+        // ponytail: automatically terminate playback after timeout (default: 90s / 1.5 minutes)
         timeoutJob = scope.launch {
             delay(timeoutMs)
             stop()

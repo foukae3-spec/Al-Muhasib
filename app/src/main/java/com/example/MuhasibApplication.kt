@@ -24,6 +24,7 @@ class MuhasibApplication : Application() {
         const val CHANNEL_ID_PRE_ADHAN = "channel_pre_adhan"
         const val CHANNEL_ID_AOD_SERVICE = "channel_aod_service"
         const val CHANNEL_ID_AOD_LAUNCHER = "channel_aod_launcher"
+        const val CHANNEL_ID_BOOK_WIRD = "channel_book_wird"
         lateinit var instance: MuhasibApplication
             private set
     }
@@ -39,6 +40,7 @@ class MuhasibApplication : Application() {
         try {
             com.example.alarm.PrayerAlarmScheduler.scheduleNextPrayerAlarm(this)
             com.example.alarm.PrayerAlarmScheduler.scheduleMidnightRollover(this)
+            com.example.library.BookWirdScheduler.scheduleDailyWirdAlarms(this)
         } catch (_: Exception) {}
 
         createNotificationChannels()
@@ -122,6 +124,17 @@ class MuhasibApplication : Application() {
             notificationManager?.createNotificationChannel(aodChannel)
             notificationManager?.createNotificationChannel(aodLauncherChannel)
             notificationManager?.createNotificationChannel(preAdhanChannel)
+
+            val bookWirdChannel = NotificationChannel(
+                CHANNEL_ID_BOOK_WIRD,
+                "وِرد العلم والقراءة اليومية",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "إشعارات قراءة شذرات الكتب الإسلامية ومزامنة موضع القراءة"
+                enableVibration(true)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+            }
+            notificationManager?.createNotificationChannel(bookWirdChannel)
         }
     }
 }

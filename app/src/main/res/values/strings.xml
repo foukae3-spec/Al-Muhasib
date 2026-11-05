@@ -7,4 +7,6 @@
     <string name="widget_dhikr_desc">عداد تسبيح تفاعلي سريع بنقرة واحدة من الشاشة الرئيسية</string>
     <string name="widget_sobriety_name">حِصْن التعافي والطهارة</string>
     <string name="widget_sobriety_desc">متابعة مسار النقاء وعداد الثبات مع زر النجدة السريع</string>
+    <string name="widget_quote_name">وِرد العلم والاقتباسات الحية</string>
+    <string name="widget_quote_desc">شذرات وبصائر تزكية النفس ومجاهدة الشهوات على شاشتك الرئيسية</string>
 </resources>

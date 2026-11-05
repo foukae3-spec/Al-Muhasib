@@ -41,6 +41,7 @@ import com.example.ui.components.InAppAdhanBanner
 import com.example.ui.components.NavigationTab
 import com.example.ui.screens.AdhkarScreen
 import com.example.ui.screens.AodSettingsScreen
+import com.example.ui.screens.BooksLibraryScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.LeaderboardScreen
 import com.example.ui.screens.OnboardingDialog
@@ -108,6 +109,7 @@ fun MainAppContent(
     val sobrietyLog by viewModel.sobrietyState.collectAsStateWithLifecycle()
     val allDhikr by viewModel.allDhikr.collectAsStateWithLifecycle()
     val muhasabahHistory by viewModel.muhasabahHistory.collectAsStateWithLifecycle()
+    val allBooks by viewModel.allBooks.collectAsStateWithLifecycle()
 
     // ponytail: observe active Adhan audio state across all screens
     val isAdhanPlaying by viewModel.isAdhanPlaying.collectAsStateWithLifecycle()
@@ -122,6 +124,14 @@ fun MainAppContent(
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(Unit) {
+        val act = context as? ComponentActivity
+        if (act?.intent?.getStringExtra("route") == "books") {
+            currentTab = NavigationTab.BOOKS
         }
     }
 
@@ -194,6 +204,13 @@ fun MainAppContent(
                                 onToggleColdShower = { viewModel.toggleColdShower(it) },
                                 onRecordRelapse = { viewModel.recordRelapse() },
                                 onTriggerPanic = { viewModel.setPanicSheetVisible(true) }
+                            )
+                        }
+
+                        NavigationTab.BOOKS -> {
+                            BooksLibraryScreen(
+                                books = allBooks,
+                                onSelectActiveWirdBook = { viewModel.setActiveReadingBook(it) }
                             )
                         }
 

@@ -30,11 +30,13 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DisplaySettings
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Mosque
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DisplaySettings
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Mosque
 import androidx.compose.ui.res.painterResource
 import com.example.R
@@ -393,11 +395,12 @@ enum class NavigationTab(
     QURAN("القرآن", Icons.AutoMirrored.Filled.MenuBook, Icons.AutoMirrored.Outlined.MenuBook),
     ADHKAR("الأذكار", Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome),
     RECOVERY("التعافي", Icons.Filled.Mosque, Icons.Outlined.Mosque, iconRes = R.drawable.ic_sujood),
+    BOOKS("الكتب", Icons.Filled.MenuBook, Icons.Outlined.MenuBook),
     AOD("الشاشة الدائمة", Icons.Filled.DisplaySettings, Icons.Outlined.DisplaySettings),
     LEADERBOARD("المتسابقون", Icons.Filled.EmojiEvents, Icons.Outlined.EmojiEvents);
 
     companion object {
-        val PRIMARY_TABS = listOf(GUARDIAN, QURAN, ADHKAR, RECOVERY)
+        val PRIMARY_TABS = listOf(GUARDIAN, QURAN, ADHKAR, RECOVERY, BOOKS)
     }
 }
 

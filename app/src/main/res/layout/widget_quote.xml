@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_quote_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_dark_green"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <!-- Top Header Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="وِردُ العِلْمِ وَالبَصَائِر"
+            android:textColor="#D4AF37"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_widget_quote_source"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="الفوائد — ابن القيم"
+            android:textColor="#8FAFA0"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Main Title & Quote Text -->
+    <TextView
+        android:id="@+id/tv_widget_quote_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="حقيقة المجاهدة والصبر"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tv_widget_quote_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="4dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:lineSpacingMultiplier="1.2"
+        android:maxLines="4"
+        android:text="الصبر عن الشهوة أيسر من الصبر على ما توجبه الشهوة؛ فإنها توجب ألماً وحسرة وتضيع وقتاً شريفاً لا يعوض."
+        android:textColor="#E0E6E2"
+        android:textSize="12sp" />
+
+</LinearLayout>

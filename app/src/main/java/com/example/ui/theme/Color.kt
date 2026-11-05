@@ -146,3 +146,31 @@ val MonochromeCardElevated = Color(0xFF242424)
 val MonochromeBorder = Color(0x30F3F4F6)
 val MonochromeHighlight = Color(0x20FFFFFF)
 
+// =========================================================================
+// تصميم «المِحْرَاب» المينيمالي (Dual Mihrab Identity)
+// =========================================================================
+// 1. الوضع الليلي: «سَكِينَةُ اللَّيْل» (AMOLED Dark)
+val MihrabDarkBackground = Color(0xFF000000)       // أسود نقي تماماً لتوفير طاقة شاشات AMOLED بنسبة 100%
+val MihrabDarkSurface = Color(0xFF0D0F0E)          // رمادي فحمي بحدود زجاجية دقيقة
+val MihrabDarkCard = Color(0xFF0D0F0E)
+val MihrabDarkCardElevated = Color(0xFF141916)
+val MihrabDarkBorder = Color(0xFF1F2421)          // حدود زجاجية دقيقة 1dp
+val MihrabDarkHighlight = Color(0x2410B981)
+val MihrabDarkPrimaryInk = Color(0xFFF4F1EA)       // أبيض عاجي مريح للقراءة الطويلة
+val MihrabDarkMutedText = Color(0xFF8A8E8B)        // رمادي فضي هادئ
+val MihrabDarkAccentEmerald = Color(0xFF10B981)    // زمردي ملكي
+val MihrabDarkAccentGold = Color(0xFFD4AF37)       // ذهبي مديني
+
+// 2. الوضع النهاري: «وَرَقُ المَصَاحِف» (Parchment Light)
+val MihrabParchmentBackground = Color(0xFFFAF6EE)  // عاجي دافئ كلون ورق المصحف الشريف
+val MihrabParchmentSurface = Color(0xFFF2ECE1)     // رملي ناعم
+val MihrabParchmentCard = Color(0xFFF2ECE1)
+val MihrabParchmentCardElevated = Color(0xFFE9E2D5)
+val MihrabParchmentBorder = Color(0xFFE2D9C8)     // حدود حجرية دافئة 1dp
+val MihrabParchmentHighlight = Color(0x330B6E4F)
+val MihrabParchmentPrimaryInk = Color(0xFF141413)  // حبر خطاطة أسود عميق
+val MihrabParchmentMutedText = Color(0xFF5C5852)   // بني زيتوني خافت
+val MihrabParchmentAccentGreen = Color(0xFF0B6E4F) // أخضر محرابي عميق
+val MihrabParchmentAccentGold = Color(0xFF9E7B22)  // ذهبي تراثي
+
+

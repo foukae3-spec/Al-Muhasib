@@ -104,6 +104,55 @@ class MuhasibViewModel(application: Application) : AndroidViewModel(application)
             initialValue = emptyList()
         )
 
+    val allBooks: StateFlow<List<com.example.data.model.IslamicBook>> = repository.allBooks
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val recoveryTracks: StateFlow<List<com.example.data.model.RecoveryTrack>> = repository.allRecoveryTracks
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    fun toggleNightGuard(trackType: String, enabled: Boolean) {
+        viewModelScope.launch {
+            repository.toggleNightGuard(trackType, enabled)
+        }
+    }
+
+    fun toggleSalahLock(trackType: String, enabled: Boolean) {
+        viewModelScope.launch {
+            repository.toggleSalahLock(trackType, enabled)
+        }
+    }
+
+    fun recordTrackRelapse(trackType: String) {
+        viewModelScope.launch {
+            repository.recordTrackRelapse(trackType)
+        }
+    }
+
+    fun downloadBook(bookId: String) {
+        viewModelScope.launch {
+            val bookRepo = com.example.library.OpenSourceBookRepository(getApplication(), repository)
+            bookRepo.downloadBook(bookId)
+        }
+    }
+
+    fun setActiveReadingBook(bookId: String) {
+        com.example.util.QuotePreferences.setActiveBookId(getApplication(), bookId)
+    }
+
+    fun updateBookProgress(bookId: String, nextCursor: Int) {
+        viewModelScope.launch {
+            repository.updateBookCursor(bookId, nextCursor)
+        }
+    }
+
     init {
         // Arm next prayer alarm and start AOD service if enabled
         PrayerAlarmScheduler.scheduleNextPrayerThresholdAlarm(application)

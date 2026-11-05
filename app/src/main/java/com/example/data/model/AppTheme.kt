@@ -125,6 +125,48 @@ enum class AppTheme(
         textPrimaryHex = 0xFFFFFFFF,
         textSecondaryHex = 0xFFA1A1AA,
         textTertiaryHex = 0xFF71717A
+    ),
+
+    /**
+     * سَكِينَةُ اللَّيْل (Mihrab AMOLED Dark)
+     * #000000 pitch black canvas, #0D0F0E glass surface, #F4F1EA ivory ink, #10B981 / #D4AF37 spiritual accents.
+     */
+    MIHRAB_AMOLED_DARK(
+        id = "mihrab_dark",
+        arabicTitle = "سَكِينَةُ اللَّيْل (المحراب)",
+        englishTitle = "Mihrab AMOLED Dark",
+        subtitle = "أسود نقي #000000 مع حبر عاجي وزبرجد محرابي لتوفير الطاقة 100%",
+        backgroundHex = 0xFF000000,
+        primaryHex = 0xFF10B981,
+        surfaceHex = 0xFF0D0F0E,
+        cardHex = 0xFF0D0F0E,
+        cardElevatedHex = 0xFF141916,
+        borderHex = 0xFF1F2421,
+        accentHex = 0xFFD4AF37,
+        textPrimaryHex = 0xFFF4F1EA,
+        textSecondaryHex = 0xFF8A8E8B,
+        textTertiaryHex = 0xFF5C605D
+    ),
+
+    /**
+     * وَرَقُ المَصَاحِف (Mihrab Parchment Light)
+     * #FAF6EE warm ivory canvas, #F2ECE1 warm sand surface, #141413 deep calligraphy ink, #0B6E4F deep green accent.
+     */
+    MIHRAB_PARCHMENT_LIGHT(
+        id = "mihrab_light",
+        arabicTitle = "وَرَقُ المَصَاحِف (المحراب)",
+        englishTitle = "Mihrab Parchment Light",
+        subtitle = "عاجي دافئ #FAF6EE كلون ورق المصحف الشريف مع حبر خطاطة أسود عميق",
+        backgroundHex = 0xFFFAF6EE,
+        primaryHex = 0xFF0B6E4F,
+        surfaceHex = 0xFFF2ECE1,
+        cardHex = 0xFFF2ECE1,
+        cardElevatedHex = 0xFFE9E2D5,
+        borderHex = 0xFFE2D9C8,
+        accentHex = 0xFF9E7B22,
+        textPrimaryHex = 0xFF141413,
+        textSecondaryHex = 0xFF5C5852,
+        textTertiaryHex = 0xFF8C8479
     );
 
     val backgroundColor: Color get() = Color(backgroundHex)

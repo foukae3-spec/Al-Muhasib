@@ -42,6 +42,7 @@ object WidgetUpdateHelper {
                     fallbackTarget = sobrietyLog?.istighfarDailyTarget ?: 100
                 )
                 updateSobrietyWidgets(context, sobrietyLog?.cleanDaysCount ?: 0, sobrietyLog?.workoutCompletedToday ?: false, sobrietyLog?.coldShowerToday ?: false)
+                updateQuoteWidgets(context)
             } catch (e: Exception) {
                 // Ignore
             }
@@ -278,6 +279,36 @@ object WidgetUpdateHelper {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_sobriety_root, pendingOpen)
+
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+    }
+
+    fun updateQuoteWidgets(context: Context) {
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        val componentName = ComponentName(context, QuoteAppWidgetProvider::class.java)
+        val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+        if (appWidgetIds.isEmpty()) return
+
+        val quote = com.example.util.QuotePreferences.getPinnedQuote(context)
+
+        for (appWidgetId in appWidgetIds) {
+            val views = RemoteViews(context.packageName, R.layout.widget_quote)
+            views.setTextViewText(R.id.tv_widget_quote_title, quote.title)
+            views.setTextViewText(R.id.tv_widget_quote_content, quote.content)
+            views.setTextViewText(R.id.tv_widget_quote_source, quote.bookTitle)
+
+            val openAppIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("route", "books")
+            }
+            val pendingOpen = PendingIntent.getActivity(
+                context,
+                1106,
+                openAppIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_quote_root, pendingOpen)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }

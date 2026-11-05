@@ -53,30 +53,31 @@ val LocalAppColors = staticCompositionLocalOf {
 }
 
 fun getAppColors(theme: AppTheme, isDark: Boolean): AppColors {
-    if (!isDark) {
+    if (!isDark || theme == AppTheme.MIHRAB_PARCHMENT_LIGHT) {
+        val isMihrabParchment = theme == AppTheme.MIHRAB_PARCHMENT_LIGHT
         return AppColors(
             isDark = false,
-            background = LightBackground,
-            surface = LightSurface,
-            glassCard = LightCard,
-            glassCardElevated = LightCardElevated,
-            glassBorder = theme.primaryColor.copy(alpha = 0.15f),
-            glassHighlight = LightHighlight,
+            background = if (isMihrabParchment) MihrabParchmentBackground else LightBackground,
+            surface = if (isMihrabParchment) MihrabParchmentSurface else LightSurface,
+            glassCard = if (isMihrabParchment) MihrabParchmentCard else LightCard,
+            glassCardElevated = if (isMihrabParchment) MihrabParchmentCardElevated else LightCardElevated,
+            glassBorder = if (isMihrabParchment) MihrabParchmentBorder else theme.primaryColor.copy(alpha = 0.15f),
+            glassHighlight = if (isMihrabParchment) MihrabParchmentHighlight else LightHighlight,
             shadow = LightShadow,
-            inset = LightInset,
-            textPrimary = LightTextPrimary,
-            textSecondary = LightTextSecondary,
-            textTertiary = LightTextTertiary,
-            emerald = theme.primaryColor,
-            emeraldSoft = theme.primaryColor.copy(alpha = 0.18f),
+            inset = if (isMihrabParchment) Color(0xFFE9E0D0) else LightInset,
+            textPrimary = if (isMihrabParchment) MihrabParchmentPrimaryInk else LightTextPrimary,
+            textSecondary = if (isMihrabParchment) MihrabParchmentMutedText else LightTextSecondary,
+            textTertiary = if (isMihrabParchment) Color(0xFF8C8479) else LightTextTertiary,
+            emerald = if (isMihrabParchment) MihrabParchmentAccentGreen else theme.primaryColor,
+            emeraldSoft = (if (isMihrabParchment) MihrabParchmentAccentGreen else theme.primaryColor).copy(alpha = 0.18f),
             blue = SpiritualCyan,
             blueSoft = SpiritualCyanSoft,
-            amber = SpiritualGold,
-            amberSoft = SpiritualGoldSoft,
+            amber = if (isMihrabParchment) MihrabParchmentAccentGold else SpiritualGold,
+            amberSoft = (if (isMihrabParchment) MihrabParchmentAccentGold else SpiritualGold).copy(alpha = 0.18f),
             crimson = AppleCrimson,
             crimsonSoft = AppleCrimsonSoft,
-            primaryAccent = theme.primaryColor,
-            primaryAccentBright = theme.accentColor,
+            primaryAccent = if (isMihrabParchment) MihrabParchmentAccentGreen else theme.primaryColor,
+            primaryAccentBright = if (isMihrabParchment) MihrabParchmentAccentGold else theme.accentColor,
             currentTheme = theme
         )
     }
@@ -207,52 +208,104 @@ fun getAppColors(theme: AppTheme, isDark: Boolean): AppColors {
             primaryAccentBright = MonochromeAccent,
             currentTheme = theme
         )
+        AppTheme.MIHRAB_AMOLED_DARK -> AppColors(
+            isDark = true,
+            background = MihrabDarkBackground,
+            surface = MihrabDarkSurface,
+            glassCard = MihrabDarkSurface,
+            glassCardElevated = Color(0xFF141715),
+            glassBorder = MihrabDarkBorder,
+            glassHighlight = Color(0x3310B981),
+            shadow = Color(0xFF000000),
+            inset = Color(0xFF000000),
+            textPrimary = MihrabDarkPrimaryInk,
+            textSecondary = MihrabDarkMutedText,
+            textTertiary = Color(0xFF5A5E5B),
+            emerald = MihrabDarkAccentEmerald,
+            emeraldSoft = MihrabDarkAccentEmerald.copy(alpha = 0.18f),
+            blue = SpiritualCyan,
+            blueSoft = SpiritualCyanSoft,
+            amber = MihrabDarkAccentGold,
+            amberSoft = MihrabDarkAccentGold.copy(alpha = 0.18f),
+            crimson = AppleCrimson,
+            crimsonSoft = AppleCrimsonSoft,
+            primaryAccent = MihrabDarkAccentEmerald,
+            primaryAccentBright = MihrabDarkAccentGold,
+            currentTheme = theme
+        )
+        AppTheme.MIHRAB_PARCHMENT_LIGHT -> AppColors(
+            isDark = true,
+            background = MihrabDarkBackground,
+            surface = MihrabDarkSurface,
+            glassCard = MihrabDarkSurface,
+            glassCardElevated = Color(0xFF141715),
+            glassBorder = MihrabDarkBorder,
+            glassHighlight = Color(0x3310B981),
+            shadow = Color(0xFF000000),
+            inset = Color(0xFF000000),
+            textPrimary = MihrabDarkPrimaryInk,
+            textSecondary = MihrabDarkMutedText,
+            textTertiary = Color(0xFF5A5E5B),
+            emerald = MihrabDarkAccentEmerald,
+            emeraldSoft = MihrabDarkAccentEmerald.copy(alpha = 0.18f),
+            blue = SpiritualCyan,
+            blueSoft = SpiritualCyanSoft,
+            amber = MihrabDarkAccentGold,
+            amberSoft = MihrabDarkAccentGold.copy(alpha = 0.18f),
+            crimson = AppleCrimson,
+            crimsonSoft = AppleCrimsonSoft,
+            primaryAccent = MihrabDarkAccentEmerald,
+            primaryAccentBright = MihrabDarkAccentGold,
+            currentTheme = theme
+        )
     }
 }
 
 fun getThemeColorScheme(theme: AppTheme, isDark: Boolean): ColorScheme {
     if (!isDark) {
+        val isMihrab = theme == AppTheme.MIHRAB_PARCHMENT_LIGHT
         return lightColorScheme(
-            primary = theme.primaryColor,
+            primary = if (isMihrab) MihrabParchmentAccentGreen else theme.primaryColor,
             onPrimary = Color.White,
-            primaryContainer = theme.primaryColor.copy(alpha = 0.18f),
-            onPrimaryContainer = theme.primaryColor,
-            secondary = theme.accentColor,
+            primaryContainer = (if (isMihrab) MihrabParchmentAccentGreen else theme.primaryColor).copy(alpha = 0.18f),
+            onPrimaryContainer = if (isMihrab) MihrabParchmentAccentGreen else theme.primaryColor,
+            secondary = if (isMihrab) MihrabParchmentAccentGold else theme.accentColor,
             onSecondary = Color.White,
-            secondaryContainer = theme.accentColor.copy(alpha = 0.18f),
-            onSecondaryContainer = theme.accentColor,
-            tertiary = SpiritualGold,
+            secondaryContainer = (if (isMihrab) MihrabParchmentAccentGold else theme.accentColor).copy(alpha = 0.18f),
+            onSecondaryContainer = if (isMihrab) MihrabParchmentAccentGold else theme.accentColor,
+            tertiary = if (isMihrab) MihrabParchmentAccentGold else SpiritualGold,
             onTertiary = Color.White,
-            background = LightBackground,
-            onBackground = LightTextPrimary,
-            surface = LightSurface,
-            onSurface = LightTextPrimary,
-            surfaceVariant = LightCard,
-            onSurfaceVariant = LightTextSecondary,
-            outline = LightBorder,
+            background = if (isMihrab) MihrabParchmentBackground else LightBackground,
+            onBackground = if (isMihrab) MihrabParchmentPrimaryInk else LightTextPrimary,
+            surface = if (isMihrab) MihrabParchmentSurface else LightSurface,
+            onSurface = if (isMihrab) MihrabParchmentPrimaryInk else LightTextPrimary,
+            surfaceVariant = if (isMihrab) MihrabParchmentSurface else LightCard,
+            onSurfaceVariant = if (isMihrab) MihrabParchmentMutedText else LightTextSecondary,
+            outline = if (isMihrab) MihrabParchmentBorder else LightBorder,
             error = AppleCrimson,
             onError = Color.White
         )
     }
 
+    val isMihrabDark = theme == AppTheme.MIHRAB_AMOLED_DARK || theme == AppTheme.MIHRAB_PARCHMENT_LIGHT
     return darkColorScheme(
-        primary = theme.primaryColor,
+        primary = if (isMihrabDark) MihrabDarkAccentEmerald else theme.primaryColor,
         onPrimary = if (theme == AppTheme.MONOCHROME) Color.Black else Color(0xFF041008),
-        primaryContainer = theme.primaryColor.copy(alpha = 0.22f),
-        onPrimaryContainer = theme.accentColor,
-        secondary = theme.accentColor,
+        primaryContainer = (if (isMihrabDark) MihrabDarkAccentEmerald else theme.primaryColor).copy(alpha = 0.22f),
+        onPrimaryContainer = if (isMihrabDark) MihrabDarkAccentGold else theme.accentColor,
+        secondary = if (isMihrabDark) MihrabDarkAccentGold else theme.accentColor,
         onSecondary = Color(0xFF041008),
-        secondaryContainer = theme.accentColor.copy(alpha = 0.22f),
-        onSecondaryContainer = theme.accentColor,
-        tertiary = SpiritualGold,
+        secondaryContainer = (if (isMihrabDark) MihrabDarkAccentGold else theme.accentColor).copy(alpha = 0.22f),
+        onSecondaryContainer = if (isMihrabDark) MihrabDarkAccentGold else theme.accentColor,
+        tertiary = if (isMihrabDark) MihrabDarkAccentGold else SpiritualGold,
         onTertiary = Color(0xFF041008),
-        background = theme.backgroundColor,
-        onBackground = theme.textPrimaryColor,
-        surface = theme.surfaceColor,
-        onSurface = theme.textPrimaryColor,
-        surfaceVariant = theme.cardColor,
-        onSurfaceVariant = theme.textSecondaryColor,
-        outline = theme.borderColor,
+        background = if (isMihrabDark) MihrabDarkBackground else theme.backgroundColor,
+        onBackground = if (isMihrabDark) MihrabDarkPrimaryInk else theme.textPrimaryColor,
+        surface = if (isMihrabDark) MihrabDarkSurface else theme.surfaceColor,
+        onSurface = if (isMihrabDark) MihrabDarkPrimaryInk else theme.textPrimaryColor,
+        surfaceVariant = if (isMihrabDark) MihrabDarkSurface else theme.cardColor,
+        onSurfaceVariant = if (isMihrabDark) MihrabDarkMutedText else theme.textSecondaryColor,
+        outline = if (isMihrabDark) MihrabDarkBorder else theme.borderColor,
         error = AppleCrimson,
         onError = Color.White
     )
@@ -265,9 +318,10 @@ fun AlMuhasibTheme(
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val currentTheme = appTheme ?: remember(context) { ThemePreferences.getTheme(context) }
-    val colorScheme = getThemeColorScheme(currentTheme, darkTheme)
-    val customColors = getAppColors(currentTheme, darkTheme)
+    val currentTheme = appTheme ?: remember(context) { ThemePreferences.resolveEffectiveTheme(context) }
+    val effectiveDark = if (currentTheme == AppTheme.MIHRAB_PARCHMENT_LIGHT) false else darkTheme
+    val colorScheme = getThemeColorScheme(currentTheme, effectiveDark)
+    val customColors = getAppColors(currentTheme, effectiveDark)
 
     val view = LocalView.current
     if (!view.isInEditMode) {

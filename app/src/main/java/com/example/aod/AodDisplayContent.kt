@@ -837,6 +837,18 @@ fun AodDisplayContent(
             }
 
             // =====================================================================
+            // ACTIVE BOOK QUOTE BOX (Updates strictly on minute tick - 0% CPU churn)
+            // =====================================================================
+            val pinnedQuote = remember(currentTimeString) {
+                com.example.util.QuotePreferences.getPinnedQuote(context)
+            }
+            ActiveBookQuoteBox(
+                quote = pinnedQuote,
+                accentColor = accentBrightColor,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+            )
+
+            // =====================================================================
             // BOTTOM SECTION: Dynamic Time-of-Day Spiritual Dua (Clean AMOLED Purity)
             // =====================================================================
             val phaseDuas = remember(currentTimeString) {
@@ -888,5 +900,56 @@ fun AodDisplayContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ActiveBookQuoteBox(
+    quote: com.example.util.ActiveQuote,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFF090D0B))
+            .border(0.5.dp, Color(0x2210B981), RoundedCornerShape(8.dp))
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "📖 ${quote.bookTitle}",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor.copy(alpha = 0.9f)
+                )
+            )
+            Text(
+                text = quote.title,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 9.sp,
+                    color = Color(0xFF6B7280)
+                )
+            )
+        }
+        Text(
+            text = quote.content,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFFD1D5DB),
+                textAlign = TextAlign.Center,
+                lineHeight = 16.sp
+            ),
+            maxLines = 2
+        )
     }
 }

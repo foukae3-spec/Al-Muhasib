@@ -81,9 +81,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 enum class BreathingPhase(val phaseNameArabic: String, val seconds: Int, val targetScale: Float) {
-    INHALE("شَهِيقٌ عَمِيق", 4, 1.35f),
-    HOLD("احْبِسِ النَّفَس", 4, 1.35f),
-    EXHALE("زَفِيرٌ مُمْتَدٌّ وَبَطِيء", 6, 0.85f)
+    INHALE("شَهِيقٌ عَمِيق (4 ثوانٍ)", 4, 1.4f),
+    HOLD("احْبِسِ النَّفَس (7 ثوانٍ)", 7, 1.4f),
+    EXHALE("زَفِيرٌ مُمْتَدٌّ (8 ثوانٍ)", 8, 0.8f)
 }
 
 @Composable
@@ -141,21 +141,21 @@ fun PanicSheet(
             secondsRemaining = 4
             HapticFeedbackUtil.performLightTick(context)
             ringScale.animateTo(
-                targetValue = 1.35f,
+                targetValue = 1.4f,
                 animationSpec = tween(4000, easing = LinearEasing)
             )
 
             currentPhase = BreathingPhase.HOLD
-            secondsRemaining = 4
+            secondsRemaining = 7
             HapticFeedbackUtil.performLightTick(context)
-            delay(4000)
+            delay(7000)
 
             currentPhase = BreathingPhase.EXHALE
-            secondsRemaining = 6
+            secondsRemaining = 8
             HapticFeedbackUtil.performLightTick(context)
             ringScale.animateTo(
-                targetValue = 0.85f,
-                animationSpec = tween(6000, easing = LinearEasing)
+                targetValue = 0.8f,
+                animationSpec = tween(8000, easing = LinearEasing)
             )
         }
     }
@@ -363,6 +363,55 @@ fun PanicSheet(
                             modifier = Modifier.testTag("urge_timer_text")
                         )
 
+                        // Duration Presets (3-Min Quick Wave Surfer & 15-Min Full)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(PillShape)
+                                    .background(if (urgeSecondsRemaining in 1..180) SpiritualCyanBright.copy(alpha = 0.25f) else appColors.inset)
+                                    .border(1.dp, if (urgeSecondsRemaining in 1..180) SpiritualCyanBright else Color(0x20FFFFFF), PillShape)
+                                    .clickable {
+                                        HapticFeedbackUtil.performLightTick(context)
+                                        urgeSecondsRemaining = 180
+                                        isUrgeTimerRunning = true
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "3 دقائق (موجة الاشتهاء السريع)",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (urgeSecondsRemaining in 1..180) SpiritualCyanBright else appColors.textSecondary
+                                    )
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(PillShape)
+                                    .background(if (urgeSecondsRemaining > 180) SpiritualCyanBright.copy(alpha = 0.25f) else appColors.inset)
+                                    .border(1.dp, if (urgeSecondsRemaining > 180) SpiritualCyanBright else Color(0x20FFFFFF), PillShape)
+                                    .clickable {
+                                        HapticFeedbackUtil.performLightTick(context)
+                                        urgeSecondsRemaining = 15 * 60
+                                        isUrgeTimerRunning = true
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "15 دقيقة (الموجة الكاملة)",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (urgeSecondsRemaining > 180) SpiritualCyanBright else appColors.textSecondary
+                                    )
+                                )
+                            }
+                        }
+
                         Text(
                             text = if (urgeSecondsRemaining > 0)
                                 "نوبة الرغبة تشبه الموجة: ترتفع وتبلغ ذروتها ثم تخبو حتماً خلال 10-15 دقيقة دون الاستجابة لها."
@@ -411,6 +460,54 @@ fun PanicSheet(
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = if (isAudioPlaying) SpiritualCyanBright else appColors.textPrimary
+                                )
+                            )
+                        }
+                    }
+                }
+
+                // Cold Water Shock Protocol Card (Vagus Nerve Reset)
+                AppleGlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = SquircleShapeMedium,
+                    elevation = 3.dp,
+                    accentGlow = SpiritualCyan
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(SpiritualCyan.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.WaterDrop,
+                                contentDescription = "ماء بارد",
+                                tint = SpiritualCyanBright,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = "بروتوكول صدمة الماء البارد (Vagus Nerve Reset)",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = SpiritualCyanBright
+                                )
+                            )
+                            Text(
+                                text = "اغسل وجهك ومؤخرة رقبتك بماء بارد لمدة 30 ثانية لتفعيل منعكس الغطس، وخفض نبضات القلب وإخماد ثوران الدوبامين الزائف.",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    color = appColors.textSecondary,
+                                    lineHeight = 16.sp
                                 )
                             )
                         }

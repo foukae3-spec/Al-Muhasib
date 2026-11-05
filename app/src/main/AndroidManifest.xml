@@ -164,6 +164,30 @@
                 android:resource="@xml/widget_sobriety_info" />
         </receiver>
 
+        <!-- Quote & Islamic Wisdom Widget -->
+        <receiver
+            android:name=".widget.QuoteAppWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_quote_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quote_info" />
+        </receiver>
+
+        <!-- Serialized Islamic Book Wird & Reading Notification Receiver -->
+        <receiver
+            android:name=".library.BookNotificationReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.action.TRIGGER_BOOK_WIRD" />
+                <action android:name="com.example.action.BOOK_MARK_READ" />
+                <action android:name="com.example.action.BOOK_PIN_QUOTE" />
+            </intent-filter>
+        </receiver>
+
         <!-- Broadcast Receiver for Homescreen Widget Interactive Actions (+1 Dhikr) -->
         <receiver
             android:name=".widget.DhikrWidgetActionReceiver"

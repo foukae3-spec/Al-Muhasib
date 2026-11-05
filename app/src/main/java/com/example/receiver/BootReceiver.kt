@@ -24,6 +24,9 @@ class BootReceiver : BroadcastReceiver() {
             // Re-schedule prayer threshold alarm and midnight auto-rollover
             PrayerAlarmScheduler.scheduleNextPrayerThresholdAlarm(context)
             PrayerAlarmScheduler.scheduleMidnightRollover(context)
+
+            // Re-schedule daily Islamic book wird reading notifications
+            com.example.library.BookWirdScheduler.scheduleDailyWirdAlarms(context)
         }
     }
 }

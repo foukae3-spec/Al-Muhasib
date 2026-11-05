@@ -2,11 +2,15 @@ package com.example.data.repository
 
 import android.content.Context
 import com.example.data.AppDatabase
+import com.example.data.model.BookChunk
 import com.example.data.model.DhikrItem
+import com.example.data.model.IslamicBook
 import com.example.data.model.MuhasabahScore
 import com.example.data.model.PrayerLog
+import com.example.data.model.RecoveryTrack
 import com.example.data.model.SobrietyLog
 import com.example.data.seed.AdhkarSeedData
+import com.example.data.seed.IslamicBooksSeedData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
@@ -20,6 +24,86 @@ class MuhasibRepository(private val database: AppDatabase) {
     private val prayerDao = database.prayerDao()
     private val sobrietyDao = database.sobrietyDao()
     private val muhasabahDao = database.muhasabahDao()
+    private val islamicBookDao = database.islamicBookDao()
+    private val bookChunkDao = database.bookChunkDao()
+    private val recoveryTrackDao = database.recoveryTrackDao()
+
+    // Islamic Books Library
+    val allBooks: Flow<List<IslamicBook>> = islamicBookDao.getAllBooks()
+
+    fun getBooksByCategory(category: String): Flow<List<IslamicBook>> =
+        islamicBookDao.getBooksByCategory(category)
+
+    fun getBookById(id: String): Flow<IslamicBook?> =
+        islamicBookDao.getBookById(id)
+
+    suspend fun getBookByIdDirect(id: String): IslamicBook? = withContext(Dispatchers.IO) {
+        islamicBookDao.getBookByIdDirect(id)
+    }
+
+    fun getChunksForBook(bookId: String): Flow<List<BookChunk>> =
+        bookChunkDao.getChunksForBook(bookId)
+
+    fun getChunkByIndex(bookId: String, chunkIndex: Int): Flow<BookChunk?> =
+        bookChunkDao.getChunkByIndex(bookId, chunkIndex)
+
+    suspend fun getChunkByIndexDirect(bookId: String, chunkIndex: Int): BookChunk? = withContext(Dispatchers.IO) {
+        bookChunkDao.getChunkByIndexDirect(bookId, chunkIndex)
+    }
+
+    suspend fun getNextUnreadChunk(bookId: String): BookChunk? = withContext(Dispatchers.IO) {
+        bookChunkDao.getNextUnreadChunk(bookId)
+    }
+
+    suspend fun updateBookCursor(bookId: String, cursor: Int) = withContext(Dispatchers.IO) {
+        islamicBookDao.updateCursor(bookId, cursor, System.currentTimeMillis())
+    }
+
+    suspend fun markChunkRead(chunkId: String, isRead: Boolean) = withContext(Dispatchers.IO) {
+        bookChunkDao.markChunkRead(chunkId, isRead, System.currentTimeMillis())
+    }
+
+    suspend fun markBookDownloaded(bookId: String, downloaded: Boolean) = withContext(Dispatchers.IO) {
+        islamicBookDao.markDownloaded(bookId, downloaded)
+    }
+
+    suspend fun getRandomBookQuote(): BookChunk? = withContext(Dispatchers.IO) {
+        bookChunkDao.getRandomQuote()
+    }
+
+    suspend fun insertBookChunks(chunks: List<BookChunk>) = withContext(Dispatchers.IO) {
+        bookChunkDao.insertAll(chunks)
+    }
+
+    // 4-Front Recovery Engine
+    val allRecoveryTracks: Flow<List<RecoveryTrack>> = recoveryTrackDao.getAllTracks()
+
+    fun getRecoveryTrack(trackType: String): Flow<RecoveryTrack?> =
+        recoveryTrackDao.getTrack(trackType)
+
+    suspend fun getRecoveryTrackDirect(trackType: String): RecoveryTrack? = withContext(Dispatchers.IO) {
+        recoveryTrackDao.getTrackDirect(trackType)
+    }
+
+    suspend fun updateRecoveryStreak(trackType: String, streakSeconds: Long, highestStreak: Long) = withContext(Dispatchers.IO) {
+        recoveryTrackDao.updateStreak(trackType, streakSeconds, highestStreak, System.currentTimeMillis())
+    }
+
+    suspend fun recordTrackRelapse(trackType: String) = withContext(Dispatchers.IO) {
+        recoveryTrackDao.recordRelapse(trackType, System.currentTimeMillis())
+    }
+
+    suspend fun toggleNightGuard(trackType: String, enabled: Boolean) = withContext(Dispatchers.IO) {
+        recoveryTrackDao.toggleNightGuard(trackType, enabled)
+    }
+
+    suspend fun toggleSalahLock(trackType: String, enabled: Boolean) = withContext(Dispatchers.IO) {
+        recoveryTrackDao.toggleSalahLock(trackType, enabled)
+    }
+
+    suspend fun updateMoneyAndCigarettes(trackType: String, moneySaved: Double, cigarettesAvoided: Int) = withContext(Dispatchers.IO) {
+        recoveryTrackDao.updateMoneyAndCigarettes(trackType, moneySaved, cigarettesAvoided)
+    }
 
     val allDhikr: Flow<List<DhikrItem>> = dhikrDao.getAllDhikr()
 
@@ -196,6 +280,15 @@ class MuhasibRepository(private val database: AppDatabase) {
                     ishaDone = false
                 )
             )
+        }
+        val currentBook = islamicBookDao.getBookByIdDirect("al_daa_wal_dawaa")
+        if (currentBook == null) {
+            islamicBookDao.insertAll(IslamicBooksSeedData.getInitialBooks())
+            bookChunkDao.insertAll(IslamicBooksSeedData.getInitialChunks())
+        }
+        val currentTrack = recoveryTrackDao.getTrackDirect("SALAH")
+        if (currentTrack == null) {
+            recoveryTrackDao.insertAll(IslamicBooksSeedData.getInitialRecoveryTracks())
         }
     }
 

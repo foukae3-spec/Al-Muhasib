@@ -86,3 +86,48 @@ data class MuhasabahScore(
     val purityScore: Int,
     val warningTriggered: Boolean = false
 )
+
+@Entity(tableName = "islamic_books")
+data class IslamicBook(
+    @PrimaryKey
+    val id: String,
+    val title: String,
+    val author: String,
+    val category: String, // "ADDICTION_RECOVERY", "SALAH_PRESERVATION", "TAZKIYAH_SOUL"
+    val description: String,
+    val totalChunks: Int,
+    val currentChunkCursor: Int = 0,
+    val isDownloaded: Boolean = false,
+    val lastReadTimestamp: Long = 0L,
+    val coverAccentHex: String = "#10B981"
+)
+
+@Entity(tableName = "book_chunks")
+data class BookChunk(
+    @PrimaryKey
+    val id: String, // "${bookId}_chunk_${chunkIndex}"
+    val bookId: String,
+    val chunkIndex: Int,
+    val pageNumber: Int,
+    val title: String,
+    val content: String,
+    val reflectionQuestion: String? = null,
+    val isRead: Boolean = false,
+    val readTimestamp: Long? = null
+)
+
+@Entity(tableName = "recovery_tracks")
+data class RecoveryTrack(
+    @PrimaryKey
+    val trackType: String, // "SALAH", "CANNABIS", "PORNOGRAPHY", "SMOKING"
+    val title: String,
+    val startDateTimestamp: Long = System.currentTimeMillis(),
+    val cleanStreakSeconds: Long = 0L,
+    val relapseCount: Int = 0,
+    val moneySavedAmount: Double = 0.0, // In Algerian Dinars (DZD)
+    val cigarettesAvoided: Int = 0,
+    val highestStreakSeconds: Long = 0L,
+    val nightGuardEnabled: Boolean = false,
+    val salahLockEnabled: Boolean = false,
+    val lastCheckInTimestamp: Long = System.currentTimeMillis()
+)

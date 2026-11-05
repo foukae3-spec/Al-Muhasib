@@ -358,24 +358,31 @@ app/src/main/java/com/example/
 │       ├── TajweedParser.kt              # Algorithmic tajweed diacritic parser
 │       ├── TajweedGuideDialog.kt         # Visual color-rule legend modal
 │       └── TajweedSettings.kt            # Tajweed custom color palette overrides
+├── library/
+│   ├── BookChunker.kt                    # Smart ~100-word paragraph segmenter for notification reading
+│   ├── BookNotificationReceiver.kt      # Receiver for wird notifications & [Mark Read / Open / Pin] actions
+│   ├── BookWirdScheduler.kt              # Exact 5 daily reading alarms scheduled 15 min after prayers
+│   └── OpenSourceBookRepository.kt       # 1-Click offline JSON download from jsDelivr / GitHub
 ├── ui/
 │   ├── components/Glassmorphic.kt        # Neumorphic Apple-style cards, shapes, static canvas glows
 │   ├── screens/
 │   │   ├── DashboardScreen.kt            # Central Guardian dashboard (Salah cards, streak, quick actions)
 │   │   ├── QuranScreen.kt                # Quran audio & recitation browser
 │   │   ├── QuranBookReaderScreen.kt      # Fullscreen Mushaf reader with tajweed & audio sync
+│   │   ├── BooksLibraryScreen.kt         # Open-source Islamic Library browser & full reader dialog
 │   │   ├── AdhkarScreen.kt               # Categorized daily supplications
-│   │   ├── RecoveryScreen.kt             # Detox streak, habit checkboxes, relapse friction gate
-│   │   ├── PanicSheet.kt                 # Emergency temptation breaker modal bottom sheet
+│   │   ├── RecoveryScreen.kt             # 4-Front Reform Engine (Salah, Cannabis, Purity, Smoking)
+│   │   ├── PanicSheet.kt                 # Emergency 4-7-8 breathing, cold water shock, 3-min urge surfer
 │   │   ├── LeaderboardScreen.kt          # Spiritual rank tiers & streak badges
 │   │   ├── AodSettingsScreen.kt          # Comprehensive AOD & app customization panel
 │   │   ├── CityPickerDialog.kt           # World cities search & prayer method configuration
 │   │   └── QiblaScreen.kt                # Sensor-driven digital Qibla compass
-│   ├── theme/                            # Color, Theme, Typography with dynamic spiritual palettes
+│   ├── theme/                            # Color, Theme, Typography with Dual Visual Identity «المِحْرَاب»
 │   └── viewmodel/MuhasibViewModel.kt     # Central application state orchestrator
 └── util/
     ├── HapticFeedbackUtil.kt             # Tactile vibration profiles (Mechanical, Tick, Rumble)
     ├── IslamicCalendarUtil.kt            # Umm Al-Qura Hijri date converter & prayer timings
+    ├── QuotePreferences.kt              # Active book cursor & pinned quote persistence for AOD and Widgets
     └── prayer/
         ├── SolarCalculator.kt            # Offline pure astronomical solar mathematics
         ├── PrayerPreferences.kt          # User prayer settings, manual offsets, calculation method
@@ -384,7 +391,37 @@ app/src/main/java/com/example/
 
 ---
 
-## 8. HANDOVER TO GEMINI 4 ARGON (THE BRAINS & THE ARTIST)
+## 8. RECENT COMPLETED MILESTONE: CORE FUNCTIONAL IMPLEMENTATION
+The following systems have been implemented, tested, compiled, and verified:
+1. **Dual Visual Identity «المِحْرَاب»:**
+   - AMOLED Night mode: `#000000` pitch black, `#0D0F0E` cards, `#F4F1EA` ink, `#10B981` royal emerald & `#D4AF37` gold.
+   - Parchment Light mode: `#FAF6EE` canvas, `#F2ECE1` card surface, `#141413` ink, `#0B6E4F` green & `#9E7B22` gold.
+   - Solar synchronization: switches at Sunrise and Sunset via `ThemePreferences.resolveEffectiveTheme(context)`.
+2. **Open-Source Islamic Library (خزانة «الصالح»):**
+   - 12 classic books in 3 categories with bundled scholarship seed chunks:
+     - Addiction/Desire: *الداء والدواء*, *ذم الهوى*, *تلبيس إبليس*, *روضة المحبين*
+     - Salah Preservation: *أسرار الصلاة*, *تعظيم قدر الصلاة*
+     - Tazkiyah & Soul: *الفوائد*, *العبودية*, *مدارج السالكين*, *رياض الصالحين*, *الأربعون النووية*, *الوابل الصيب*
+   - 1-Click offline download via `OpenSourceBookRepository.kt`.
+3. **Serialized Book Notification Engine & Bidirectional Sync:**
+   - `BookWirdScheduler.kt` schedules 5 daily reading sessions timed 15 minutes after prayers.
+   - `BookNotificationReceiver.kt` delivers `BigTextStyle` notifications with 3 interactive actions:
+     `[✓ قرأتُ وحفظت الموضع]`, `[📖 فتح في الكتاب]`, and `[📌 تثبيت على الشاشة]`.
+   - Unified bookmark cursor (`currentChunkCursor`): What is read in notifications automatically advances in `BooksLibraryScreen`, and manual reading advances notifications!
+4. **Live Book Quotes System:**
+   - Always-On Display: `ActiveBookQuoteBox` in `AodDisplayContent.kt` strictly updated on the 1-minute tick (0% idle CPU churn).
+   - Homescreen widget: `QuoteAppWidgetProvider.kt` with live update hooks.
+5. **4-Front Reform Engine (منظومة «الصالح» الرباعية):**
+   - Front 1 (حصن الصلاة): Pre-Adhan 15-min wudu prep, Sacred Salah Lock, Qada rescue with Istighfar counter.
+   - Front 2 (التعافي من الحشيش): Clean hours & days counter, money saved in DZD (15,000 DZD), 3 brain recovery stages.
+   - Front 3 (غض البصر والإباحية): 90-day rewire bar, Post-Isha Night Guard toggle, 30s reflection gate with Ibn al-Qayyim wisdom.
+   - Front 4 (الإقلاع عن التدخين): Cigarettes avoided (100+), money saved in DZD (2,500 DZD), cardiopulmonary recovery meters, 3-min craving wave surfer with mechanical haptic misbaha ticking.
+6. **Database Schema v4:**
+   - Upgraded Room schema with tables `islamic_books`, `book_chunks`, and `recovery_tracks` with migration `MIGRATION_3_4`.
+
+---
+
+## 9. HANDOVER TO GEMINI 4 ARGON (THE BRAINS & THE ARTIST)
 
 Gemini 4 Argon, you now possess complete, granular knowledge of **Al-Muhasib** and the user's exact vision. 
 

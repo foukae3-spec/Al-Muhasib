@@ -293,61 +293,29 @@ Following rigorous power profiling on AMOLED hardware, the following battery dra
 
 ---
 
-## 6. TASK 2 BLUEPRINT: THE HOLISTIC PHONE-CENTRIC LIFE OPERATING SYSTEM
+## 6. THE NEXT HORIZON: THE USER'S DIRECT VISION (FOR GEMINI 4 ARGON — THE BRAINS & THE ARTIST)
 
-The user's goal: **"I wanna make my whole phone center around this app. Restricting social media and distracting apps. A minimalist whole theme. Notifications and reminders that work with calendar to optimize my day from reading Quran, working, reading overall, physique, and whole life optimization."**
+> 🎨 **Message for Argon:** You are the **Brains and the Artist** of this project. The user does not want rigid, pre-packaged assistant ideas. Below is the user's exact, unvarnished vision and requirements. You have complete creative and architectural ownership to think deeply, conceptualize, design, and direct how to approach transforming the phone around this application.
+> 
+> As the fast worker and programmer, I will take your architectural directives, UI/UX concepts, and data models and implement them cleanly with high-speed engineering and rigorous testing.
 
-Here is the exact architectural blueprint for Gemini 4 Argon to analyze and build:
+### The User's Raw Request:
+> *"i wanna make my whole phone to center around this app. from restricting social media and such apps. a minimalist whole theme. notifications and reminders that work with calendar to Optimize my day from Reading quran and Working, and Optimizing my reading overall and my physique and my whole life Optimization."*
 
-### 6.1 Minimalist Islamic Launcher & System UI Overhaul
-- **Role:** Declare `android.intent.category.HOME` in `AndroidManifest.xml` so Al-Muhasib can operate as the primary Android Launcher.
-- **Aesthetic:** Radical typography-driven minimalism (inspired by *Blloc Ratio* and *Minimalist Phone*).
-  - Pure Black AMOLED canvas (`#000000`).
-  - Only essential apps displayed as plain Arabic/English text (no bright, dopamine-inducing colorful icons).
-  - Quick swipe left for Quran & Adhan; quick swipe right for today's Schedule & Life Score.
-
-### 6.2 Social Media & Distraction Blocker (Friction & Hard Lock)
-- **Mechanism:** Utilize Android `AccessibilityService` or `UsageStatsManager` + `SYSTEM_ALERT_WINDOW`.
-- **Intelligent Friction Levels:**
-  1. *Friction Mode:* When user opens Instagram, TikTok, Twitter/X, or YouTube, Al-Muhasib interrupts with a 15-second breathing gate and a Quranic verse:
-     *﴿اقْتَرَبَ لِلنَّاسِ حِسَابُهُمْ وَهُمْ فِي غَفْلَةٍ مُّعْرِضُونَ﴾*
-  2. *Hard Lockout Mode:* Block distracting apps entirely during:
-     - Pre-Fajr & Post-Fajr sacred hours.
-     - Scheduled Deep Work focus blocks.
-     - Night wind-down (10:00 PM to 5:00 AM).
-  3. *Quota Mode:* Allow max 20 minutes/day per app, enforcing immediate lockout once depleted.
-
-### 6.3 Calendar Integration & Salah-Anchored Daily Schedule
-- **Dynamic Prayer Anchoring:** Unlike static secular calendars where alarms are rigid, an Islamic life revolves around the Sun.
-  - The calendar dynamically floats tasks around the 5 prayer times:
-    - **Fajr to Sunrise:** Quran recitation, morning Adhkar, spiritual study.
-    - **Morning (8:00 - 12:30):** Deep Work / Career sprint.
-    - **Dhuhr:** Congregational prayer & wholesome lunch.
-    - **Afternoon (14:00 - Asr):** Execution & meetings.
-    - **Asr to Maghrib:** Athletic training, gym workout, outdoor movement.
-    - **Maghrib to Isha:** General book reading, family time, evening Adhkar.
-    - **Post-Isha:** Night accountability (*Muhasabah*), reading, early sleep.
-- **Two-Way Synchronization:** Sync with Google Calendar / Android Calendar Provider (`CalendarContract`) to pull existing appointments and automatically protect Salah intervals.
-
-### 6.4 Deep Reading & Knowledge Expansion Tracker
-- **Quran Khatmah Engine:** Dynamic pacing based on user goal (e.g. 1 juz/day, 1 hizb/day, or complete in 30 days) with progress tracking.
-- **General Book & Islamic Science Reading:**
-  - Dedicated reader and tracker for classical Islamic texts (Riyad as-Salihin, Bulugh al-Maram, 40 Hadith Nawawi) and secular personal development books.
-  - Daily page counter, reading speed tracker, and comprehension notes.
-
-### 6.5 Physique, Workout & Biological Discipline Tracker
-- **Integrated Habit Matrix:**
-  - Morning cold shower confirmation.
-  - Daily workout logger (Push/Pull/Legs, Running, Sunnah martial arts/swimming).
-  - Fasting tracker (Mondays & Thursdays, White Days / *Ayyam al-Beed*, Ramadan).
-  - Hydration & sleep hygiene tracking (8 hours target, early bedtime).
-
-### 6.6 Unified Muhasabah (Life Accountability) Algorithm
-- **Daily Holistic Score (0 - 100%):**
-  \[
-  \text{Score} = w_1 \cdot \text{Salah} + w_2 \cdot \text{Quran} + w_3 \cdot \text{Dhikr} + w_4 \cdot \text{Purity} + w_5 \cdot \text{Fitness} + w_6 \cdot \text{WorkFocus}
-  \]
-- **Weekly & Monthly Insights:** Visual graphs showing correlation between prayer consistency, digital detox purity, and physical vitality.
+### Key Requirements Defined by the User:
+1. **Centering the Entire Phone Around Al-Muhasib:**
+   - The device should fundamentally revolve around the app as the user's central interface and daily operating hub.
+2. **Restricting Social Media & Distracting Apps:**
+   - Active mechanisms to curb, restrict, and guard against addictive feeds, mindless scrolling, and digital distractions.
+3. **A Minimalist Whole Theme:**
+   - A cohesive, elegant, distraction-free aesthetic across the phone that calms the senses and eliminates digital clutter.
+4. **Calendar-Integrated Notifications & Daily Optimization:**
+   - Smart reminders and calendar orchestration designed to structure and optimize the user's day:
+     - **Quran Reading:** Continuous spiritual nourishment and dedicated reading blocks.
+     - **Focused Work:** Productive, undisturbed work sessions.
+     - **Overall Reading:** Systematic expansion of knowledge and book reading.
+     - **Physique & Athletic Discipline:** Workouts, physical health, and biological vitality.
+     - **Whole Life Optimization:** A unified system that elevates discipline, consciousness, and accountability in every facet of life.
 
 ---
 
@@ -416,6 +384,11 @@ app/src/main/java/com/example/
 
 ---
 
-## 8. SUMMARY FOR GEMINI 4 ARGON
+## 8. HANDOVER TO GEMINI 4 ARGON (THE BRAINS & THE ARTIST)
 
-Gemini 4 Argon, you now possess complete, granular knowledge of **Al-Muhasib**. The foundation is robust, battery-optimized, and deeply authentic. You are equipped to help architect and implement the next major phase: transforming this application into the **ultimate phone-centric Life Operating System** that unifies the user's phone, calendar, habits, knowledge, physical discipline, and spiritual focus into a singular, cohesive masterpiece.
+Gemini 4 Argon, you now possess complete, granular knowledge of **Al-Muhasib** and the user's exact vision. 
+
+- **Your Role:** You are the **Brains & the Artist**. Take full creative and architectural ownership. Think through how this phone transformation should look, feel, and function, how the system components should interact, and how to structure the ultimate life-operating experience.
+- **My Role (Worker/Programmer):** I am your fast, meticulous engineering partner. Once you formulate the architecture, designs, and specifications, I will write the Kotlin code, build the Compose UI, wire the background services and databases, and verify everything with tests.
+
+The floor is entirely yours to brainstorm, architect, and direct the masterpiece!

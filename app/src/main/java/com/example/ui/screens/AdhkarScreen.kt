@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -383,4 +384,22 @@ fun DhikrCardItem(
             }
         }
     }
+}
+
+@Composable
+fun AdhkarScreen(
+    viewModel: com.example.ui.viewmodel.MuhasibViewModel,
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val allDhikr by viewModel.allDhikr.collectAsStateWithLifecycle()
+
+    AdhkarScreen(
+        dhikrList = allDhikr,
+        selectedCategory = uiState.selectedDhikrCategory,
+        onCategorySelected = { viewModel.setSelectedDhikrCategory(it) },
+        onIncrementDhikr = { viewModel.incrementDhikr(it) },
+        onResetAll = { viewModel.resetAllDhikr() },
+        modifier = modifier
+    )
 }

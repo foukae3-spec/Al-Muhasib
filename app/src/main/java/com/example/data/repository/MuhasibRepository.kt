@@ -9,6 +9,9 @@ import com.example.data.model.MuhasabahScore
 import com.example.data.model.PrayerLog
 import com.example.data.model.RecoveryTrack
 import com.example.data.model.SobrietyLog
+import com.example.data.model.DailyLifeMission
+import com.example.data.model.AppNiyyahSession
+import com.example.data.model.AppGuardRule
 import com.example.data.seed.AdhkarSeedData
 import com.example.data.seed.IslamicBooksSeedData
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +30,7 @@ class MuhasibRepository(private val database: AppDatabase) {
     private val islamicBookDao = database.islamicBookDao()
     private val bookChunkDao = database.bookChunkDao()
     private val recoveryTrackDao = database.recoveryTrackDao()
+    private val lifeOsDao = database.lifeOsDao()
 
     // Islamic Books Library
     val allBooks: Flow<List<IslamicBook>> = islamicBookDao.getAllBooks()
@@ -352,6 +356,75 @@ class MuhasibRepository(private val database: AppDatabase) {
         if (currentTrack == null) {
             recoveryTrackDao.insertAll(IslamicBooksSeedData.getInitialRecoveryTracks())
         }
+
+        // Whole-Phone Life OS Initial Missions Seed
+        val todayMissions = lifeOsDao.getMissionsForDate(today)
+        if (todayMissions.isEmpty()) {
+            lifeOsDao.insertMission(
+                DailyLifeMission(
+                    dateString = today,
+                    title = "Read Chunk #4 of Al-Daa wa Al-Dawaa & Reflect",
+                    prayerAnchor = "POST_FAJR",
+                    category = "DEEN",
+                    estimatedMinutes = 15,
+                    isCompleted = false
+                )
+            )
+            lifeOsDao.insertMission(
+                DailyLifeMission(
+                    dateString = today,
+                    title = "90m Deep Craft Block (Zero Feeds / Zero Browser)",
+                    prayerAnchor = "DUHA_BLOCK",
+                    category = "PROVISION",
+                    estimatedMinutes = 90,
+                    isCompleted = false
+                )
+            )
+            lifeOsDao.insertMission(
+                DailyLifeMission(
+                    dateString = today,
+                    title = "Physical Stewardship & Family Presence Before Maghrib",
+                    prayerAnchor = "ASR_BLOCK",
+                    category = "HEALTH",
+                    estimatedMinutes = 45,
+                    isCompleted = false
+                )
+            )
+        }
+    }
+
+    // Whole-Phone Life OS Operations
+    fun observeDailyMissions(dateString: String): Flow<List<DailyLifeMission>> =
+        lifeOsDao.observeMissionsForDate(dateString)
+
+    suspend fun insertDailyMission(mission: DailyLifeMission): Long = withContext(Dispatchers.IO) {
+        lifeOsDao.insertMission(mission)
+    }
+
+    suspend fun setMissionCompleted(missionId: Int, isCompleted: Boolean) = withContext(Dispatchers.IO) {
+        lifeOsDao.setMissionCompleted(missionId, isCompleted)
+    }
+
+    suspend fun deleteDailyMission(missionId: Int) = withContext(Dispatchers.IO) {
+        lifeOsDao.deleteMission(missionId)
+    }
+
+    fun observeNiyyahSessions(dateString: String): Flow<List<AppNiyyahSession>> =
+        lifeOsDao.observeNiyyahSessionsForDate(dateString)
+
+    suspend fun recordNiyyahSession(session: AppNiyyahSession): Long = withContext(Dispatchers.IO) {
+        lifeOsDao.insertNiyyahSession(session)
+    }
+
+    suspend fun closeNiyyahSession(sessionId: Int, endedAtMs: Long, honored: Boolean) = withContext(Dispatchers.IO) {
+        lifeOsDao.closeNiyyahSession(sessionId, endedAtMs, honored)
+    }
+
+    fun observeAllAppGuardRules(): Flow<List<AppGuardRule>> =
+        lifeOsDao.observeAllAppGuardRules()
+
+    suspend fun upsertAppGuardRule(rule: AppGuardRule) = withContext(Dispatchers.IO) {
+        lifeOsDao.upsertAppGuardRule(rule)
     }
 
     fun isOnboardingCompleted(context: Context): Boolean =

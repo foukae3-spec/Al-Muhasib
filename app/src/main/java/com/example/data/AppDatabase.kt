@@ -20,6 +20,10 @@ import com.example.data.model.MuhasabahScore
 import com.example.data.model.PrayerLog
 import com.example.data.model.RecoveryTrack
 import com.example.data.model.SobrietyLog
+import com.example.data.model.DailyLifeMission
+import com.example.data.model.AppNiyyahSession
+import com.example.data.model.AppGuardRule
+import com.example.data.model.LifeOsDao
 import com.example.data.seed.AdhkarSeedData
 import com.example.data.seed.IslamicBooksSeedData
 import kotlinx.coroutines.CoroutineScope
@@ -34,9 +38,12 @@ import kotlinx.coroutines.launch
         MuhasabahScore::class,
         IslamicBook::class,
         BookChunk::class,
-        RecoveryTrack::class
+        RecoveryTrack::class,
+        DailyLifeMission::class,
+        AppNiyyahSession::class,
+        AppGuardRule::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -47,6 +54,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun islamicBookDao(): IslamicBookDao
     abstract fun bookChunkDao(): BookChunkDao
     abstract fun recoveryTrackDao(): RecoveryTrackDao
+    abstract fun lifeOsDao(): LifeOsDao
 
     companion object {
         @Volatile
@@ -120,6 +128,51 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Migration 4→5: adds Whole-Phone Life OS Daily Missions, Niyyah Sessions, and Guard Rules
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS daily_life_missions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        dateString TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        prayerAnchor TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        estimatedMinutes INTEGER NOT NULL DEFAULT 25,
+                        completedMinutes INTEGER NOT NULL DEFAULT 0,
+                        isCompleted INTEGER NOT NULL DEFAULT 0,
+                        barakahPoints INTEGER NOT NULL DEFAULT 15,
+                        createdAtEpochMs INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS app_niyyah_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        dateString TEXT NOT NULL,
+                        packageName TEXT NOT NULL,
+                        appLabel TEXT NOT NULL,
+                        statedNiyyah TEXT NOT NULL,
+                        allottedMinutes INTEGER NOT NULL,
+                        startedAtEpochMs INTEGER NOT NULL,
+                        endedAtEpochMs INTEGER,
+                        honoredTimeBox INTEGER NOT NULL DEFAULT 1
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS app_guard_rules (
+                        packageName TEXT NOT NULL PRIMARY KEY,
+                        appLabel TEXT NOT NULL,
+                        sanctuaryTierName TEXT NOT NULL,
+                        dailyLimitMinutes INTEGER NOT NULL DEFAULT 20,
+                        requireNiyyahPrompt INTEGER NOT NULL DEFAULT 1,
+                        blockDuringSalahWindow INTEGER NOT NULL DEFAULT 1,
+                        blockDuringNightGuard INTEGER NOT NULL DEFAULT 1,
+                        isPinnedToHomeDock INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -127,8 +180,8 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "al_muhasib_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
-                    .fallbackToDestructiveMigrationOnDowngrade()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .fallbackToDestructiveMigration()
                     .addCallback(DatabaseCallback(scope))
                     .build()
                 INSTANCE = instance

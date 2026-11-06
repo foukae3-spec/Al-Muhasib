@@ -119,6 +119,71 @@ class MuhasibViewModel(application: Application) : AndroidViewModel(application)
             initialValue = emptyList()
         )
 
+    val todayDateString: String = LocalDate.now().toString()
+
+    val dailyMissions: StateFlow<List<com.example.data.model.DailyLifeMission>> = repository.observeDailyMissions(todayDateString)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val todayNiyyahSessions: StateFlow<List<com.example.data.model.AppNiyyahSession>> = repository.observeNiyyahSessions(todayDateString)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val appGuardRules: StateFlow<List<com.example.data.model.AppGuardRule>> = repository.observeAllAppGuardRules()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    fun addDailyMission(title: String, anchor: String, minutes: Int, category: String = "PROVISION") {
+        viewModelScope.launch {
+            repository.insertDailyMission(
+                com.example.data.model.DailyLifeMission(
+                    dateString = todayDateString,
+                    title = title,
+                    prayerAnchor = anchor,
+                    category = category,
+                    estimatedMinutes = minutes,
+                    isCompleted = false
+                )
+            )
+        }
+    }
+
+    fun toggleDailyMission(missionId: Int, isCompleted: Boolean) {
+        viewModelScope.launch {
+            repository.setMissionCompleted(missionId, isCompleted)
+        }
+    }
+
+    fun deleteDailyMission(missionId: Int) {
+        viewModelScope.launch {
+            repository.deleteDailyMission(missionId)
+        }
+    }
+
+    fun recordNiyyahSession(packageName: String, appLabel: String, statedNiyyah: String, allottedMinutes: Int) {
+        viewModelScope.launch {
+            repository.recordNiyyahSession(
+                com.example.data.model.AppNiyyahSession(
+                    dateString = todayDateString,
+                    packageName = packageName,
+                    appLabel = appLabel,
+                    statedNiyyah = statedNiyyah,
+                    allottedMinutes = allottedMinutes,
+                    startedAtEpochMs = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
     fun toggleNightGuard(trackType: String, enabled: Boolean) {
         viewModelScope.launch {
             repository.toggleNightGuard(trackType, enabled)
@@ -180,6 +245,8 @@ class MuhasibViewModel(application: Application) : AndroidViewModel(application)
         }
         setAppTheme(appTheme)
     }
+
+    fun cycleThemeMode() = toggleThemeMode()
 
     init {
         // Arm next prayer alarm and start AOD service if enabled

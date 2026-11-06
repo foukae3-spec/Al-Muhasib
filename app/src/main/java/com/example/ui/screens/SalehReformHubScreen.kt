@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -418,3 +419,19 @@ fun SalehReformHubScreen(
         }
     }
 }
+
+@Composable
+fun SalehReformHubScreen(
+    viewModel: com.example.ui.viewmodel.MuhasibViewModel,
+    modifier: Modifier = Modifier
+) {
+    val allBooks by viewModel.allBooks.collectAsStateWithLifecycle()
+
+    BooksLibraryScreen(
+        books = allBooks,
+        onSelectActiveWirdBook = { bookId -> viewModel.setActiveReadingBook(bookId) },
+        viewModel = viewModel,
+        modifier = modifier
+    )
+}
+

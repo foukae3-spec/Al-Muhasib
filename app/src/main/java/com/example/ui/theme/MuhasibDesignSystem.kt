@@ -1,25 +1,39 @@
 package com.example.ui.theme
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * أوضاع الإضاءة في نظام الصالح:
- * - AMOLED_DARK: أسود نقي #000000 لتوفير طاقة الشاشة وحماية العين ليلاً
- * - PARCHMENT_LIGHT: عاجي دافئ #FAF6EE كلون ورق المصحف للقراءة النهارية
- * - SOLAR_AUTO: يتبدل تلقائياً مع الشروق والمغرب عبر SolarCalculator
+ * MuhasibDesignSystem.kt — Heavenly iOS 26 Liquid Glass & Apple HIG / Taste-Skill Design System.
+ *
+ * Combines:
+ * - Low-saturation (<75%), warm celestial metals & alabaster tones:
+ *   Champagne Gold (#E5C185), Pearl Alabaster (#F5F2EB), Dawn Silk Rose (#DFB2A9),
+ *   Celestial Mist (#9BBCD6), Sage Pearl (#9CC5B5), and Amethyst Dusk (#C3A6E8).
+ * - Multi-stop atmospheric sky & horizon canvases (Twilight Velvet, Golden Hour Cloud, Alabaster Sanctuary).
+ * - Physics-based Apple spring specifications (dampingRatio = 0.76f, stiffness = MediumLow).
+ * - Full backward compatibility with existing MuhasibColors and LocalMuhasibColors calls.
  */
 enum class MuhasibThemeMode {
     AMOLED_DARK,
@@ -27,58 +41,92 @@ enum class MuhasibThemeMode {
     SOLAR_AUTO
 }
 
-/**
- * الباليتات الروحانية الست المتوافقة مع AodManager.kt
- */
 enum class SacredAccentPalette(
-    val titleArabic: String,
-    val darkPrimary: Color,
-    val darkGlow: Color,
-    val lightPrimary: Color,
-    val lightGlow: Color
+    val displayName: String,
+    val primaryTint: Color,
+    val secondaryTint: Color,
+    val specularHighlight: Color,
+    val ambientGlow: Color,
+    val canvasTop: Color,
+    val canvasMid: Color,
+    val canvasBottom: Color,
+    val titleArabic: String = displayName
 ) {
     EMERALD(
-        titleArabic = "زُمُرُّد الرَّوضَة",
-        darkPrimary = Color(0xFF10B981),
-        darkGlow = Color(0x2610B981),
-        lightPrimary = Color(0xFF086646),
-        lightGlow = Color(0x1F086646)
+        displayName = "Celestial Sage & Champagne",
+        primaryTint = Color(0xFFE5C185),       // Warm Champagne Gold
+        secondaryTint = Color(0xFF9CC5B5),     // Soft Heavenly Sage Pearl
+        specularHighlight = Color(0xFFFBF8F1), // Warm Alabaster Specular Rim
+        ambientGlow = Color(0x40E5C185),
+        canvasTop = Color(0xFF141B29),         // Velvet Twilight Sky
+        canvasMid = Color(0xFF1C2230),         // Soft Horizon Indigo
+        canvasBottom = Color(0xFF0A0D14),      // Deep Warm Obsidian
+        titleArabic = "زُمُرُّد الرَّوضَة"
     ),
     GOLD(
-        titleArabic = "ذَهَب المِيزَاب",
-        darkPrimary = Color(0xFFD4AF37),
-        darkGlow = Color(0x26D4AF37),
-        lightPrimary = Color(0xFF9A7418),
-        lightGlow = Color(0x1F9A7418)
+        displayName = "Golden Hour Sanctuary",
+        primaryTint = Color(0xFFE8C78E),       // Sunlit Champagne
+        secondaryTint = Color(0xFFF5EFE6),     // Silk Alabaster
+        specularHighlight = Color(0xFFFFFFFF),
+        ambientGlow = Color(0x45E8C78E),
+        canvasTop = Color(0xFF1F1B24),
+        canvasMid = Color(0xFF2B2329),
+        canvasBottom = Color(0xFF0D0B10),
+        titleArabic = "ذَهَب المِيزَاب"
     ),
     CYAN(
-        titleArabic = "نُور الفَجْر",
-        darkPrimary = Color(0xFF38BDF8),
-        darkGlow = Color(0x2638BDF8),
-        lightPrimary = Color(0xFF0369A1),
-        lightGlow = Color(0x1F0369A1)
+        displayName = "Fajr Horizon Mist",
+        primaryTint = Color(0xFF9BBCD6),       // Ethereal Fajr Sky Blue
+        secondaryTint = Color(0xFFE5C185),     // Dawn Gold Horizon
+        specularHighlight = Color(0xFFF0F7FC),
+        ambientGlow = Color(0x409BBCD6),
+        canvasTop = Color(0xFF0F1926),
+        canvasMid = Color(0xFF182638),
+        canvasBottom = Color(0xFF080D14),
+        titleArabic = "نُور الفَجْر"
     ),
     WHITE(
-        titleArabic = "صَفَاء النُّور",
-        darkPrimary = Color(0xFFE2E8F0),
-        darkGlow = Color(0x22E2E8F0),
-        lightPrimary = Color(0xFF334155),
-        lightGlow = Color(0x1A334155)
+        displayName = "Alabaster Archway",
+        primaryTint = Color(0xFFF5F2EB),       // Pure Warm Pearl
+        secondaryTint = Color(0xFFD6C3A5),     // Limestone Gold
+        specularHighlight = Color(0xFFFFFFFF),
+        ambientGlow = Color(0x38F5F2EB),
+        canvasTop = Color(0xFF181A20),
+        canvasMid = Color(0xFF22252E),
+        canvasBottom = Color(0xFF0C0E12),
+        titleArabic = "صَفَاء النُّور"
     ),
     ROSE(
-        titleArabic = "وَرْد المَدِينَة",
-        darkPrimary = Color(0xFFFB7185),
-        darkGlow = Color(0x26FB7185),
-        lightPrimary = Color(0xFFBE123C),
-        lightGlow = Color(0x1FBE123C)
+        displayName = "Maghrib Silk Rose",
+        primaryTint = Color(0xFFDFB2A9),       // Soft Maghrib Rose Gold
+        secondaryTint = Color(0xFFE5C185),     // Warm Amber
+        specularHighlight = Color(0xFFFDF6F4),
+        ambientGlow = Color(0x40DFB2A9),
+        canvasTop = Color(0xFF1F1621),
+        canvasMid = Color(0xFF2B1E28),
+        canvasBottom = Color(0xFF0C090F),
+        titleArabic = "وَرْد المَدِينَة"
     ),
     PURPLE(
-        titleArabic = "سَكِينَة السَّحَر",
-        darkPrimary = Color(0xFFC084FC),
-        darkGlow = Color(0x26C084FC),
-        lightPrimary = Color(0xFF6B21A8),
-        lightGlow = Color(0x1F6B21A8)
+        displayName = "Isha Starlight Velvet",
+        primaryTint = Color(0xFFC3A6E8),       // Soft Celestial Lavender
+        secondaryTint = Color(0xFFE5C185),     // Starlight Gold
+        specularHighlight = Color(0xFFF8F4FC),
+        ambientGlow = Color(0x40C3A6E8),
+        canvasTop = Color(0xFF131124),
+        canvasMid = Color(0xFF1C1933),
+        canvasBottom = Color(0xFF080710),
+        titleArabic = "سَكِينَة السَّحَر"
     );
+
+    val darkPrimary: Color get() = primaryTint
+    val darkGlow: Color get() = ambientGlow
+    val lightPrimary: Color get() = primaryTint
+    val lightGlow: Color get() = ambientGlow
+
+    fun atmosphericBackgroundBrush(): Brush = Brush.verticalGradient(
+        colors = listOf(canvasTop, canvasMid, canvasBottom)
+    )
 
     companion object {
         fun fromAodAccent(accent: Int): SacredAccentPalette = when (accent) {
@@ -92,6 +140,29 @@ enum class SacredAccentPalette(
         }
     }
 }
+
+val LocalSacredPalette = staticCompositionLocalOf { SacredAccentPalette.EMERALD }
+
+object AppleLiquidGlassTokens {
+    val CardCornerRadius: Dp = 28.dp
+    val PillCornerRadius: Dp = 999.dp
+    val SheetCornerRadius: Dp = 36.dp
+    val AmbientShadowElevation: Dp = 24.dp
+
+    val GlassSurfaceFill = Color(0x24FFFFFF)
+    val GlassSurfaceElevatedFill = Color(0x30FFFFFF)
+    val GlassWarmTintFill = Color(0x1AE5C185)
+    val SpecularTopRim = Color(0x66FFFFFF)
+    val SpecularBottomRim = Color(0x12FFFFFF)
+    val DeepAmbientShadow = Color(0x9903060C)
+
+    fun <T> fluidSpring() = spring<T>(
+        dampingRatio = 0.76f,
+        stiffness = Spring.StiffnessMediumLow
+    )
+}
+
+typealias HeavenlyLiquidGlassTokens = AppleLiquidGlassTokens
 
 @Immutable
 data class MuhasibColors(
@@ -107,7 +178,6 @@ data class MuhasibColors(
     val mutedInk: Color,
     val accent: Color,
     val accentSoftGlow: Color,
-    // ألوان الجبهات الأربع للتعافي وحفظ الصلاة
     val salahGuardAccent: Color,
     val purityPornAccent: Color,
     val clarityWeedAccent: Color,
@@ -126,21 +196,21 @@ fun buildMuhasibColors(
     return if (isDark) {
         MuhasibColors(
             isDark = true,
-            canvas = Color(0xFF000000),              // True OLED Pitch Black (0mA current)
-            cardSurface = Color(0xFF0A0C0B),         // Obsidian Glass Tier 1
-            elevatedPill = Color(0xFF131715),        // Tactile Pill Surface Tier 2
-            glassSpecularTop = Color(0x24FFFFFF),    // 14% top specular reflection
-            glassBorderBottom = Color(0x06FFFFFF),   // 2.5% bottom edge shadow
-            divider = Color(0xFF1A1F1C),
-            primaryInk = Color(0xFFF5F2EB),          // Warm Alabaster White
-            secondaryInk = Color(0xFF949C97),        // Balanced Sage Grey
-            mutedInk = Color(0xFF555E59),            // Subtle Metadata Grey
-            accent = palette.darkPrimary,
-            accentSoftGlow = palette.darkGlow,
-            salahGuardAccent = Color(0xFF10B981),    // Emerald
-            purityPornAccent = Color(0xFF38BDF8),    // Celestial Sapphire
-            clarityWeedAccent = Color(0xFFF59E0B),   // Sovereign Amber
-            breathSmokingAccent = Color(0xFF14B8A6), // Pure Teal
+            canvas = Color(0xFF0A0D14),              // Obsidian Twilight Velvet
+            cardSurface = Color(0xFF121722),         // Liquid Glass Surface Tier 1
+            elevatedPill = Color(0xFF1A2130),        // Elevated Pill Surface Tier 2
+            glassSpecularTop = Color(0x38FFFFFF),    // 22% top specular rim
+            glassBorderBottom = Color(0x10FFFFFF),   // subtle bottom edge refraction
+            divider = Color(0x1FFFFFFF),
+            primaryInk = Color(0xFFF7F4EC),          // Pure Warm Pearl Alabaster
+            secondaryInk = Color(0xFFBAC3CE),        // Balanced Celestial Sage Grey
+            mutedInk = Color(0xFF6B7788),            // Subtle Horizon Metadata Grey
+            accent = palette.primaryTint,
+            accentSoftGlow = palette.ambientGlow,
+            salahGuardAccent = Color(0xFFE5C185),    // Champagne Gold
+            purityPornAccent = Color(0xFF9BBCD6),    // Celestial Mist Blue
+            clarityWeedAccent = Color(0xFFDFB2A9),   // Dawn Silk Rose
+            breathSmokingAccent = Color(0xFF9CC5B5), // Sage Pearl
             dangerAlert = Color(0xFFEF4444)
         )
     } else {
@@ -155,10 +225,10 @@ fun buildMuhasibColors(
             primaryInk = Color(0xFF141311),          // Deep Calligraphic Sumi Ink
             secondaryInk = Color(0xFF5A554C),        // Warm Umber
             mutedInk = Color(0xFF8C8579),            // Soft Sandstone
-            accent = palette.lightPrimary,
-            accentSoftGlow = palette.lightGlow,
-            salahGuardAccent = Color(0xFF086646),
-            purityPornAccent = Color(0xFF0284C7),
+            accent = palette.primaryTint,
+            accentSoftGlow = palette.ambientGlow,
+            salahGuardAccent = Color(0xFF9A7418),
+            purityPornAccent = Color(0xFF0369A1),
             clarityWeedAccent = Color(0xFFB45309),
             breathSmokingAccent = Color(0xFF0F766E),
             dangerAlert = Color(0xFFDC2626)
@@ -166,9 +236,6 @@ fun buildMuhasibColors(
     }
 }
 
-/**
- * نظام الخطوط الهندسي مع تفعيل Tabular Numerals (tnum) لمنع اهتزاز العدادات
- */
 val MuhasibTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -191,7 +258,7 @@ val MuhasibTypography = Typography(
         lineHeight = 28.sp
     ),
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Serif, // مثالي لقراءة فقرات الكتب والاقتباسات
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Normal,
         fontSize = 17.sp,
         lineHeight = 31.sp,
@@ -261,7 +328,10 @@ fun MuhasibSalehTheme(
         )
     }
 
-    CompositionLocalProvider(LocalMuhasibColors provides effectiveColors) {
+    CompositionLocalProvider(
+        LocalSacredPalette provides palette,
+        LocalMuhasibColors provides effectiveColors
+    ) {
         MaterialTheme(
             colorScheme = materialColorScheme,
             typography = MuhasibTypography,

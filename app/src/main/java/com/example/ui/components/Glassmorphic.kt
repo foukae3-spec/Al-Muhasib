@@ -1,9 +1,11 @@
 package com.example.ui.components
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,6 +13,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -869,3 +873,221 @@ fun BookWisdomQuoteCard(
     }
 }
 
+/**
+ * Glassmorphic.kt — Apple iOS 26 Liquid Glass Component Suite.
+ *
+ * Implements the rules from `emilkowalski/skills` (apple-design) and Apple HIG Liquid Glass:
+ * 1. Optical Specular Rim Border: Top-left 42% warm white highlight refracting down to 6% bottom-right.
+ * 2. Multi-Layer Ambient + Contact Shadows: Real depth separation over atmospheric wallpapers.
+ * 3. Tactile Spring Press Physics: Every interactive surface scales smoothly to 0.97f on press
+ *    using a physical spring (`dampingRatio = 0.74f, stiffness = 400f`).
+ */
+@Composable
+fun GlassmorphicCard(
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = Color(0x22FFFFFF),
+    borderColor: Color = Color(0x66FFFFFF),
+    shape: Shape = RoundedCornerShape(28.dp),
+    shadowElevation: Dp = 22.dp,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && onClick != null) 0.975f else 1f,
+        animationSpec = spring(dampingRatio = 0.74f, stiffness = 400f),
+        label = "liquid_glass_press_scale"
+    )
+
+    val specularBorderBrush = Brush.linearGradient(
+        colors = listOf(
+            borderColor,
+            Color.White.copy(alpha = 0.14f),
+            Color.White.copy(alpha = 0.05f),
+            borderColor.copy(alpha = 0.22f)
+        ),
+        start = Offset(0f, 0f),
+        end = Offset(900f, 900f)
+    )
+
+    val innerSheenBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.16f),
+            backgroundColor,
+            Color(0x18060A12)
+        )
+    )
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = shadowElevation,
+                shape = shape,
+                ambientColor = Color(0xCC02050A),
+                spotColor = Color(0xCC02050A)
+            )
+            .clip(shape)
+            .background(innerSheenBrush)
+            .border(BorderStroke(1.dp, specularBorderBrush), shape)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick
+                    )
+                } else {
+                    Modifier
+                }
+            )
+            .padding(20.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            content = content
+        )
+    }
+}
+
+@Composable
+fun GlassmorphicSurface(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(28.dp),
+    blurRadius: Dp = 20.dp,
+    content: @Composable () -> Unit
+) {
+    val specularBorder = Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.38f),
+            Color.White.copy(alpha = 0.08f),
+            Color.White.copy(alpha = 0.20f)
+        )
+    )
+    Box(
+        modifier = modifier
+            .shadow(
+                elevation = 20.dp,
+                shape = shape,
+                ambientColor = Color(0xAA000000),
+                spotColor = Color(0xAA000000)
+            )
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.16f),
+                        Color.White.copy(alpha = 0.07f)
+                    )
+                )
+            )
+            .border(BorderStroke(1.dp, specularBorder), shape)
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun GlassmorphicButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    accentColor: Color = Color(0xFFE5C185),
+    content: @Composable RowScope.() -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.965f else 1f,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium),
+        label = "glass_btn_scale"
+    )
+
+    val shape = RoundedCornerShape(20.dp)
+    Surface(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = 16.dp,
+                shape = shape,
+                ambientColor = accentColor.copy(alpha = 0.45f),
+                spotColor = accentColor.copy(alpha = 0.55f)
+            )
+            .clip(shape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled,
+                onClick = onClick
+            ),
+        shape = shape,
+        color = Color.Transparent,
+        border = BorderStroke(
+            1.dp,
+            Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.65f),
+                    accentColor.copy(alpha = 0.4f)
+                )
+            )
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            accentColor,
+                            Color(0xFFF3DEC0)
+                        )
+                    )
+                )
+                .padding(PaddingValues(horizontal = 20.dp, vertical = 14.dp)),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            content = content
+        )
+    }
+}
+
+@Composable
+fun GlassmorphicBadge(
+    text: String,
+    color: Color = Color(0xFFE5C185),
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(999.dp)
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(color.copy(alpha = 0.16f))
+            .border(
+                BorderStroke(
+                    0.8.dp,
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.45f),
+                            color.copy(alpha = 0.35f)
+                        )
+                    )
+                ),
+                shape
+            )
+            .padding(horizontal = 12.dp, vertical = 5.dp)
+    ) {
+        Text(
+            text = text,
+            color = color,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.4.sp
+        )
+    }
+}

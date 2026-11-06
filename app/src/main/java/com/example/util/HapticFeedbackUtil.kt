@@ -284,4 +284,13 @@ object HapticFeedbackUtil {
             vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
         }
     }
+
+    /** Subtle tactile tick for navigation, tabs, and launcher grid */
+    fun performTick(context: Context) = performLightTick(context)
+
+    /** Standard mechanical click for button confirmations and selections */
+    fun performClick(context: Context) = performMechanicalClick(context)
+
+    /** Distinct heavy mechanical impulse for modal actions, alarms, and milestones */
+    fun performHeavyClick(context: Context) = performMilestoneDoublePulse(context)
 }

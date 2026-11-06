@@ -1152,3 +1152,31 @@ private fun getSalatContextualContent(nextPrayerKey: String, isPassed: Boolean):
         )
     }
 }
+
+@Composable
+fun DashboardScreen(
+    viewModel: com.example.ui.viewmodel.MuhasibViewModel,
+    modifier: Modifier = Modifier,
+    onOpenSettings: () -> Unit = {}
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val todayPrayerLog by viewModel.todayPrayerLog.collectAsStateWithLifecycle()
+    val sobrietyLog by viewModel.sobrietyState.collectAsStateWithLifecycle()
+    val muhasabahHistory by viewModel.muhasabahHistory.collectAsStateWithLifecycle()
+
+    DashboardScreen(
+        prayerLog = todayPrayerLog,
+        sobrietyLog = sobrietyLog,
+        muhasabahHistory = muhasabahHistory,
+        isDarkMode = uiState.muhasibThemeMode != com.example.ui.theme.MuhasibThemeMode.PARCHMENT_LIGHT,
+        onToggleTheme = { viewModel.cycleThemeMode() },
+        onTogglePrayer = { name, done -> viewModel.togglePrayer(name, done) },
+        onToggleWorkout = { done -> viewModel.toggleWorkout(done) },
+        onToggleColdShower = { done -> viewModel.toggleColdShower(done) },
+        onRecordRelapse = { viewModel.recordRelapse() },
+        onTriggerPanic = { viewModel.setPanicSheetVisible(true) },
+        onTestAlarm = { viewModel.testEmergencyAlarm() },
+        onOpenSettings = onOpenSettings,
+        modifier = modifier
+    )
+}

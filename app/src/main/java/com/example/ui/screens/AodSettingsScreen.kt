@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.aod.AodActivity
 import com.example.aod.AodManager
 import com.example.data.model.AppTheme
@@ -1914,4 +1915,46 @@ fun AodSettingsScreen(
             }
         }
     }
+}
+
+@Composable
+fun AodSettingsScreen(
+    viewModel: com.example.ui.viewmodel.MuhasibViewModel,
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    AodSettingsScreen(
+        currentTheme = uiState.currentTheme,
+        onThemeChanged = { viewModel.setAppTheme(it) },
+        isAodEnabled = uiState.isAodEnabled,
+        onToggleAod = { viewModel.setAodEnabled(it) },
+        isBurnInProtectionEnabled = uiState.isBurnInProtectionEnabled,
+        onToggleBurnIn = { viewModel.setBurnInProtectionEnabled(it) },
+        brightness = uiState.aodBrightness,
+        onBrightnessChanged = { viewModel.setAodBrightness(it) },
+        isAutoBrightnessEnabled = uiState.isAutoBrightnessEnabled,
+        onToggleAutoBrightness = { viewModel.setAutoBrightnessEnabled(it) },
+        aodDisplayMode = uiState.aodDisplayMode,
+        onDisplayModeChanged = { viewModel.setAodDisplayMode(it) },
+        isBatterySaverCutoffEnabled = uiState.isBatterySaverCutoffEnabled,
+        onToggleBatterySaverCutoff = { viewModel.setBatterySaverCutoffEnabled(it) },
+        misbahaHapticProfile = uiState.misbahaHapticProfile,
+        onHapticProfileChanged = { viewModel.setMisbahaHapticProfile(it) },
+        isPocketModeEnabled = uiState.isPocketModeEnabled,
+        onTogglePocketMode = { viewModel.setPocketModeEnabled(it) },
+        aodClockStyle = uiState.aodClockStyle,
+        onClockStyleChanged = { viewModel.setAodClockStyle(it) },
+        aodAccentColor = uiState.aodAccentColor,
+        onAccentColorChanged = { viewModel.setAodAccentColor(it) },
+        aodBatteryStyle = uiState.aodBatteryStyle,
+        onBatteryStyleChanged = { viewModel.setAodBatteryStyle(it) },
+        isNotificationPrivacy = uiState.isNotificationPrivacy,
+        onToggleNotificationPrivacy = { viewModel.setNotificationPrivacy(it) },
+        isFloatingDhikrEnabled = uiState.isFloatingDhikrEnabled,
+        onToggleFloatingDhikr = { viewModel.setFloatingDhikrEnabled(it) },
+        onTestAlarm = { viewModel.testEmergencyAlarm() },
+        onReplayOnboarding = { viewModel.replayOnboarding() },
+        modifier = modifier
+    )
 }

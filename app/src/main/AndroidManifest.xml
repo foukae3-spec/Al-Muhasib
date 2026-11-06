@@ -2,9 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Core System & Sovereign Life OS Permissions -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
@@ -12,11 +16,18 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- Whole-Phone Home Launcher & Screen-Time Muhasabah Permissions -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
     <application
         android:name=".MuhasibApplication"
@@ -29,15 +40,23 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
 
+        <!-- Sovereign Phone Home Launcher + Primary Entry Point -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MyApplication"
+            android:launchMode="singleTask"
+            android:clearTaskOnLaunch="true"
+            android:stateNotNeeded="true"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
@@ -53,7 +72,7 @@
             android:launchMode="singleInstance"
             android:theme="@style/Theme.AOD" />
 
-        <!-- Unmissable Salah Full-Screen Alarm Activity -->
+        <!-- Unmissable Salah Full-Screen Alarm & Convergence Activity -->
         <activity
             android:name=".alarm.PrayerWarningActivity"
             android:exported="false"
@@ -61,8 +80,39 @@
             android:turnScreenOn="true"
             android:screenOrientation="portrait"
             android:excludeFromRecents="true"
-            android:launchMode="singleTask"
-            android:theme="@style/Theme.MyApplication" />
+            android:launchMode="singleInstance"
+            android:theme="@style/Theme.EmergencyAlarm" />
+
+        <!-- Relapse Emergency Full-Screen Friction Activity -->
+        <activity
+            android:name=".ui.screens.RelapseFrictionActivity"
+            android:exported="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="portrait"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:theme="@style/Theme.EmergencyAlarm" />
+
+        <!-- AOD Lockscreen Replacement Service -->
+        <service
+            android:name=".aod.AodLockService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Maintains AOD lockscreen replacement and pocket mode detection" />
+        </service>
+
+        <!-- Floating Adhkar & Live Niyyah Session HUD Service -->
+        <service
+            android:name=".floating.FloatingDhikrService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Displays floating Dhikr overlay and Niyyah session countdown over other apps" />
+        </service>
 
         <!-- Native DreamService for System Ambient Screen Saver -->
         <service
@@ -74,26 +124,6 @@
                 <action android:name="android.service.dreams.DreamService" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-        </service>
-
-        <!-- Foreground Service for Hardware Screen-Off Detection -->
-        <service
-            android:name=".aod.AodLockService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Always-on-display ambient lock supervisor" />
-        </service>
-
-        <!-- Floating Overlay Dhikr HUD Service -->
-        <service
-            android:name=".floating.FloatingDhikrService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Floating Adhkar overlay widget" />
         </service>
 
         <!-- Quran Background Audio Player Foreground Service with MediaSessionCompat -->
@@ -111,11 +141,17 @@
             </intent-filter>
         </receiver>
 
-
-        <!-- Alarm Receiver for Prayer Warnings & Periodic Dhikr -->
+        <!-- Prayer Alarm Broadcast Receiver -->
         <receiver
             android:name=".alarm.PrayerAlarmReceiver"
-            android:exported="false" />
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.alarm.ACTION_PRAYER_ALARM" />
+                <action android:name="com.example.alarm.ACTION_SNOOZE_10_MIN" />
+                <action android:name="com.example.alarm.ACTION_DISMISS_ADHAN" />
+                <action android:name="com.example.alarm.ACTION_MIDNIGHT_ROLLOVER" />
+            </intent-filter>
+        </receiver>
 
         <!-- System Boot Receiver to rearm AOD and prayer reminders -->
         <receiver
@@ -123,6 +159,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>

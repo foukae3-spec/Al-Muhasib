@@ -69,6 +69,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.SobrietyLog
 import com.example.ui.components.AppleGlassCard
 import com.example.ui.components.NeumorphicInsetBox
@@ -1292,4 +1293,21 @@ fun SmokingRecoveryFront(
             )
         }
     }
+}
+
+@Composable
+fun RecoveryScreen(
+    viewModel: com.example.ui.viewmodel.MuhasibViewModel,
+    modifier: Modifier = Modifier
+) {
+    val sobrietyLog by viewModel.sobrietyState.collectAsStateWithLifecycle()
+
+    RecoveryScreen(
+        sobrietyLog = sobrietyLog,
+        onToggleWorkout = { viewModel.toggleWorkout(it) },
+        onToggleColdShower = { viewModel.toggleColdShower(it) },
+        onRecordRelapse = { viewModel.recordRelapse() },
+        onTriggerPanic = { viewModel.setPanicSheetVisible(true) },
+        modifier = modifier
+    )
 }

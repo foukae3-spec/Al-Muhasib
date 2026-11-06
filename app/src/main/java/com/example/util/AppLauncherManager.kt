@@ -5,9 +5,16 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Build
 import android.os.Process
+import android.provider.MediaStore
 import android.provider.Settings
+import android.provider.Telephony
 import java.util.Calendar
 
 /**
@@ -147,6 +154,118 @@ object AppLauncherManager {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         runCatching { context.startActivity(intent) }
+    }
+
+    /**
+     * Verifies if Al-Muhasib is currently configured as the default Android Home Launcher.
+     */
+    fun isDefaultHomeLauncher(context: Context): Boolean {
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+        }
+        val resolveInfo = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        return resolveInfo?.activityInfo?.packageName == context.packageName
+    }
+
+    /**
+     * Converts an app's icon Drawable to a clean Bitmap for display in Compose.
+     */
+    fun getAppIconBitmap(context: Context, packageName: String, sizePx: Int = 128): Bitmap? {
+        return runCatching {
+            val drawable: Drawable = context.packageManager.getApplicationIcon(packageName)
+            if (drawable is BitmapDrawable && drawable.bitmap != null) {
+                Bitmap.createScaledBitmap(drawable.bitmap, sizePx, sizePx, true)
+            } else {
+                val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bitmap)
+                drawable.setBounds(0, 0, canvas.width, canvas.height)
+                drawable.draw(canvas)
+                bitmap
+            }
+        }.getOrNull()
+    }
+
+    /**
+     * Reliably opens the system Phone/Dialer application on any Android device and ROM.
+     */
+    fun launchDialer(context: Context): Boolean {
+        val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val resolved = context.packageManager.resolveActivity(dialIntent, 0)
+        if (resolved != null) {
+            return runCatching { context.startActivity(dialIntent); true }.getOrDefault(false)
+        }
+        val fallbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tel:")).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        return runCatching { context.startActivity(fallbackIntent); true }.getOrDefault(false)
+    }
+
+    /**
+     * Reliably opens the system Messages/SMS application on any Android device and ROM.
+     */
+    fun launchMessaging(context: Context): Boolean {
+        val defaultSmsPkg = Telephony.Sms.getDefaultSmsPackage(context)
+        if (!defaultSmsPkg.isNullOrBlank()) {
+            val launch = context.packageManager.getLaunchIntentForPackage(defaultSmsPkg)?.apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            if (launch != null && runCatching { context.startActivity(launch); true }.getOrDefault(false)) {
+                return true
+            }
+        }
+        val smsIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_APP_MESSAGING)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        if (context.packageManager.resolveActivity(smsIntent, 0) != null) {
+            return runCatching { context.startActivity(smsIntent); true }.getOrDefault(false)
+        }
+        val fallbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse("sms:")).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        return runCatching { context.startActivity(fallbackIntent); true }.getOrDefault(false)
+    }
+
+    /**
+     * Reliably opens the system Camera application.
+     */
+    fun launchCamera(context: Context): Boolean {
+        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val resolved = context.packageManager.resolveActivity(cameraIntent, 0)
+        val pkg = resolved?.activityInfo?.packageName
+        if (pkg != null) {
+            val launch = context.packageManager.getLaunchIntentForPackage(pkg)?.apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            if (launch != null && runCatching { context.startActivity(launch); true }.getOrDefault(false)) {
+                return true
+            }
+        }
+        return runCatching { context.startActivity(cameraIntent); true }.getOrDefault(false)
+    }
+
+    /**
+     * Reliably opens the default Web Browser.
+     */
+    fun launchBrowser(context: Context): Boolean {
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://google.com")).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val resolved = context.packageManager.resolveActivity(browserIntent, 0)
+        val pkg = resolved?.activityInfo?.packageName
+        if (pkg != null) {
+            val launch = context.packageManager.getLaunchIntentForPackage(pkg)?.apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            if (launch != null && runCatching { context.startActivity(launch); true }.getOrDefault(false)) {
+                return true
+            }
+        }
+        return runCatching { context.startActivity(browserIntent); true }.getOrDefault(false)
     }
 
     /**

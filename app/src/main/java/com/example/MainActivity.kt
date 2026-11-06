@@ -86,11 +86,11 @@ enum class SovereignOsDestination(
     val arabicLabel: String,
     val icon: ImageVector
 ) {
-    MIHRAB_HOME("Sanctuary", "المِحْرَاب", Icons.Default.Home),
-    QURAN_WIRD("Quran", "القُرْآن", Icons.Default.MenuBook),
+    MIHRAB_HOME("Home", "الرَّئِيسِيَّة", Icons.Default.Home),
+    QURAN_WIRD("Quran", "المُصْحَف", Icons.Default.MenuBook),
     ADHKAR_HISN("Adhkar", "الأَذْكَار", Icons.Default.SelfImprovement),
-    SALEH_REFORM("Library", "صَالِح", Icons.Default.AutoStories),
-    RECOVERY_GUARD("Serenity", "الحِصْن", Icons.Default.Shield),
+    SALEH_REFORM("Library", "الكُتُب", Icons.Default.AutoStories),
+    RECOVERY_GUARD("Recovery", "التَّعَافِي", Icons.Default.Shield),
     CLASSIC_DASHBOARD("Ledger", "الإِحْصَاء", Icons.Default.Dashboard),
     OS_SETTINGS("Settings", "الإِعْدَادَات", Icons.Default.Settings)
 }
@@ -188,6 +188,9 @@ class MainActivity : ComponentActivity() {
                                 onOpenQuran = { currentDestination = SovereignOsDestination.QURAN_WIRD },
                                 onOpenAdhkar = { currentDestination = SovereignOsDestination.ADHKAR_HISN },
                                 onOpenSalehBooks = { currentDestination = SovereignOsDestination.SALEH_REFORM },
+                                onOpenRecovery = { currentDestination = SovereignOsDestination.RECOVERY_GUARD },
+                                onOpenDashboard = { currentDestination = SovereignOsDestination.CLASSIC_DASHBOARD },
+                                onOpenSettings = { currentDestination = SovereignOsDestination.OS_SETTINGS },
                                 onOpenPanicShield = { viewModel.setPanicSheetVisible(true) },
                                 onLaunchAodSleepMode = { launchCustomOledAod() },
                                 onPrayerCompletedToggle = { prayer, done ->
@@ -252,17 +255,20 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    HeavenlyLiquidGlassDock(
-                        currentDestination = currentDestination,
-                        onSelectDestination = { destination ->
-                            HapticFeedbackUtil.performTick(this@MainActivity)
-                            currentDestination = destination
-                        },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .navigationBarsPadding()
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    )
+                    // Floating Return & Sub-Screen Navigation Dock (only visible when outside Home Launcher)
+                    if (currentDestination != SovereignOsDestination.MIHRAB_HOME) {
+                        HeavenlyLiquidGlassDock(
+                            currentDestination = currentDestination,
+                            onSelectDestination = { destination ->
+                                HapticFeedbackUtil.performTick(this@MainActivity)
+                                currentDestination = destination
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .navigationBarsPadding()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
                 }
             }
         }
@@ -321,6 +327,13 @@ private fun HeavenlyLiquidGlassDock(
     val champagne = Color(0xFFE5C185)
     val alabaster = Color(0xFFFBF9F5)
     val dockShape = RoundedCornerShape(32.dp)
+    val primaryDestinations = listOf(
+        SovereignOsDestination.MIHRAB_HOME,
+        SovereignOsDestination.QURAN_WIRD,
+        SovereignOsDestination.ADHKAR_HISN,
+        SovereignOsDestination.SALEH_REFORM,
+        SovereignOsDestination.RECOVERY_GUARD
+    )
 
     Surface(
         modifier = modifier
@@ -332,7 +345,7 @@ private fun HeavenlyLiquidGlassDock(
                 spotColor = champagne.copy(alpha = 0.35f)
             ),
         shape = dockShape,
-        color = Color(0xD9101522),
+        color = Color(0xEA101522),
         border = BorderStroke(
             1.dp,
             Brush.linearGradient(
@@ -347,33 +360,34 @@ private fun HeavenlyLiquidGlassDock(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SovereignOsDestination.entries.forEach { dest ->
+            primaryDestinations.forEach { dest ->
                 val isSelected = currentDestination == dest
                 Surface(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(20.dp),
                     color = if (isSelected) champagne.copy(alpha = 0.22f) else Color.Transparent,
-                    border = if (isSelected) BorderStroke(0.8.dp, champagne.copy(alpha = 0.55f)) else null,
+                    border = if (isSelected) BorderStroke(0.8.dp, champagne.copy(alpha = 0.6f)) else null,
                     modifier = Modifier.clickable { onSelectDestination(dest) }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = if (isSelected) 8.dp else 6.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
                         Icon(
                             imageVector = dest.icon,
                             contentDescription = dest.title,
-                            tint = if (isSelected) champagne else alabaster.copy(alpha = 0.55f),
-                            modifier = Modifier.size(18.dp)
+                            tint = if (isSelected) champagne else alabaster.copy(alpha = 0.6f),
+                            modifier = Modifier.size(19.dp)
                         )
                         if (isSelected) {
                             Text(
                                 text = " ${dest.title}",
                                 color = alabaster,
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }

@@ -21,8 +21,17 @@
 ## 📱 Visual Showcase & App Tour (معرض الشاشات)
 
 <div align="center">
-  <p><b>✨ Designed with Al-Mihrab Neumorphic Glassmorphism & True AMOLED Black (#000000) ✨</b></p>
+  <p><b>✨ Designed with Al-Mihrab Neumorphic Glassmorphism & Sovereign Home Launcher OS ✨</b></p>
 </div>
+
+### 0. 📱 واجهة اللانشر السيادي للهاتف (Sovereign Phone Home Launcher OS)
+
+| واجهة الهاتف المينيمالية (Phone Home) | درج التطبيقات وبوابة النية (App Drawer & Niyyah) | محراب الحارس الروحاني (Sanctuary Cockpit) |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/11_launcher_phone_home.png" width="260" alt="Minimalist Phone Home Launcher"/> | <img src="docs/screenshots/12_launcher_app_drawer.png" width="260" alt="Searchable App Drawer with Niyyah Gate"/> | <img src="docs/screenshots/13_launcher_sanctuary_cockpit.png" width="260" alt="Sanctuary Cockpit View"/> |
+| **واجهة الهاتف اليومية المينيمالية**<br/>• شريط تعيين المحاسب كلانشر أساسي<br/>• ساعة أنيقة مع عداد الصلاة القادمة<br/>• شريط بحث فوري في تطبيقات الهاتف<br/>• شبكة التطبيقات المفضلة بأيقونات أصلية<br/>• دوك سفلي زجاجي (هاتف، رسائل، كاميرا) | **درج التطبيقات الذكي لحماية الأوقات**<br/>• بحث فوري وسريع في كافة التطبيقات<br/>• تصنيف التطبيقات (ضروريات، عمل، مقيدة)<br/>• تتبع استهلاك الدقائق اليومية لكل تطبيق<br/>• بوابة النية الإلزامية (3 تسبيحات ونافذة زمنية)<br/>• حجب الإدمان الرقمي في أوقات الصلاة | **لوحة قيادة السكينة والعبادة**<br/>• مفتاح التبديل السلس بين الهاتف والمحراب<br/>• مسار الصلوات الخمس والعد التنازلي<br/>• مهام العمل اليومية مع مؤقت التركيز العميق<br/>• حوكمة استهلاك الشاشة والسبحة الذكية<br/>• وِرد قراءة كتب الصالحين وميزان المحاسبة |
+
+---
 
 ### 1. الصرح الروحاني والعبادات (Spiritual Cockpit & Devotion)
 

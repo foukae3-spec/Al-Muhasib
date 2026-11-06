@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
@@ -8,7 +9,10 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,36 +21,46 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -80,12 +94,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -95,6 +109,7 @@ import com.example.floating.FloatingDhikrService
 import com.example.ui.components.GlassmorphicBadge
 import com.example.ui.components.GlassmorphicButton
 import com.example.ui.components.GlassmorphicCard
+import com.example.ui.components.GlassmorphicSurface
 import com.example.util.AppLaunchDecision
 import com.example.util.AppLauncherManager
 import com.example.util.AppSanctuaryTier
@@ -110,16 +125,15 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * MihrabHomeLauncherScreen — Heavenly iOS 26 Liquid Glass & Apple HIG Edition.
- *
- * Crafted following `emilkowalski/skills` (apple-design) and `Leonxlnx/taste-skill` (design-taste-frontend):
- * - Zero harsh neon green (#00E676) or emoji clutter.
- * - Multi-stop celestial horizon shader background with warm champagne gold (#E5C185),
- *   pearlescent alabaster (#F5F2EB), dawn silk rose (#DFB2A9), and twilight mist (#9BBCD6).
- * - Interactive Dynamic Island Live Activity capsule at the top of the screen.
- * - Refractive Liquid Glass cards (`GlassmorphicCard`) with 42% specular top-left rim lighting,
- *   24dp ambient shadows, and physical spring press states (`dampingRatio = 0.74f`).
+ * Display modes for the Sovereign Home Launcher screen:
+ * - MINIMAL_PHONE: The clean, everyday Android Home Launcher with pinned phone apps, search, and clock.
+ * - SANCTUARY_COCKPIT: The deep spiritual cockpit with 5-Salah orbital tracker, daily missions, and reform hub.
  */
+enum class LauncherScreenMode {
+    MINIMAL_PHONE,
+    SANCTUARY_COCKPIT
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MihrabHomeLauncherScreen(
@@ -141,12 +155,18 @@ fun MihrabHomeLauncherScreen(
     onOpenQuran: () -> Unit = {},
     onOpenAdhkar: () -> Unit = {},
     onOpenSalehBooks: () -> Unit = {},
+    onOpenRecovery: () -> Unit = {},
+    onOpenDashboard: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     onOpenPanicShield: () -> Unit = {},
     onLaunchAodSleepMode: () -> Unit = {},
     onPrayerCompletedToggle: (String, Boolean) -> Unit = { _, _ -> },
     onIncrementIstighfar: () -> Unit = {}
 ) {
     val context = LocalContext.current
+
+    var launcherMode by remember { mutableStateOf(LauncherScreenMode.MINIMAL_PHONE) }
+    var isDefaultHome by remember { mutableStateOf(AppLauncherManager.isDefaultHomeLauncher(context)) }
 
     var selectedPhaseOverride by remember { mutableStateOf<SacredPhonePhase?>(null) }
     var salahLockEnabled by remember { mutableStateOf(true) }
@@ -176,12 +196,9 @@ fun MihrabHomeLauncherScreen(
     }
 
     val completedPrayersCount = prayerStates.count { it.second }
-
     val todayDate = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
-    val dailyMissions = remember {
-        mutableStateListOf<DailyLifeMission>()
-    }
 
+    val dailyMissions = remember { mutableStateListOf<DailyLifeMission>() }
     LaunchedEffect(persistedMissions) {
         if (persistedMissions.isNotEmpty()) {
             dailyMissions.clear()
@@ -192,11 +209,11 @@ fun MihrabHomeLauncherScreen(
                     DailyLifeMission(
                         id = 1,
                         dateString = todayDate,
-                        title = "Read Chunk #4 of Al-Daa wa Al-Dawaa & Reflect",
+                        title = "Read Chunk #$currentBookChunk of $activeBookTitle",
                         prayerAnchor = "POST_FAJR",
-                        category = "DEEN",
+                        category = "DEVOTION",
                         estimatedMinutes = 15,
-                        isCompleted = false
+                        isCompleted = true
                     ),
                     DailyLifeMission(
                         id = 2,
@@ -242,6 +259,7 @@ fun MihrabHomeLauncherScreen(
     LaunchedEffect(Unit) {
         while (true) {
             currentTimeText = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+            isDefaultHome = AppLauncherManager.isDefaultHomeLauncher(context)
             delay(15_000L)
         }
     }
@@ -322,7 +340,7 @@ fun MihrabHomeLauncherScreen(
         }
     }
 
-    // Heavenly Multi-Stop Atmospheric Horizon Background
+    // Heavenly Multi-Stop Atmospheric Horizon Background with statusBarsPadding
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -336,7 +354,7 @@ fun MihrabHomeLauncherScreen(
                 )
             )
     ) {
-        // Subtle Celestial Horizon Glow Orb behind the Liquid Glass layer
+        // Celestial Horizon Ambient Glow Orb
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -344,8 +362,8 @@ fun MihrabHomeLauncherScreen(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            phasePrimaryColor.copy(alpha = 0.24f),
-                            phasePrimaryColor.copy(alpha = 0.06f),
+                            phasePrimaryColor.copy(alpha = 0.22f),
+                            phasePrimaryColor.copy(alpha = 0.05f),
                             Color.Transparent
                         ),
                         center = Offset(540f, 260f),
@@ -354,18 +372,30 @@ fun MihrabHomeLauncherScreen(
                 )
         )
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 20.dp,
-                end = 20.dp,
-                top = 16.dp,
-                bottom = 120.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
         ) {
-            // 0. Interactive iPhone-Style Dynamic Island Live Activity Capsule
-            item {
+            // Top Section: Optional Set-Default-Launcher Banner & Dynamic Island
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // If app is not default launcher, show elegant invitation banner
+                if (!isDefaultHome) {
+                    SetDefaultLauncherBanner(
+                        accentColor = phasePrimaryColor,
+                        onClick = {
+                            HapticFeedbackUtil.performClick(context)
+                            AppLauncherManager.openDefaultHomeSettings(context)
+                        }
+                    )
+                }
+
+                // Interactive Dynamic Island Live Activity Capsule
                 HeavenlyDynamicIslandCapsule(
                     isExpanded = isDynamicIslandExpanded,
                     nextPrayerName = nextPrayerName,
@@ -383,182 +413,200 @@ fun MihrabHomeLauncherScreen(
                         onIncrementIstighfar()
                     }
                 )
-            }
 
-            if (!expiredNiyyahAppAlert.isNullOrBlank()) {
-                item {
+                if (!expiredNiyyahAppAlert.isNullOrBlank()) {
                     ExpiredNiyyahLiquidBanner(
                         appName = expiredNiyyahAppAlert,
                         accentColor = phasePrimaryColor,
                         onDismiss = onDismissExpiredAlert
                     )
                 }
-            }
 
-            // 1. Editorial Lock-Screen / Home OS Time & Sanctuary Header
-            item {
-                HeavenlyEditorialHeader(
-                    currentTimeText = currentTimeText,
-                    hijriDateString = hijriDateString,
-                    cleanDaysStreak = cleanDaysStreak,
-                    phaseColor = phasePrimaryColor,
-                    onSetDefaultHome = {
-                        HapticFeedbackUtil.performClick(context)
-                        AppLauncherManager.openDefaultHomeSettings(context)
-                    },
-                    onOpenMuhasabahLedger = {
-                        HapticFeedbackUtil.performClick(context)
-                        showMuhasabahLedger = true
-                    }
-                )
-            }
-
-            // 2. Smooth Liquid Glass Phase Orbit Selector
-            item {
-                HeavenlyPhaseOrbitBar(
-                    activePhase = currentPhase,
-                    isAutoMode = selectedPhaseOverride == null,
-                    onSelectAuto = {
-                        HapticFeedbackUtil.performTick(context)
-                        selectedPhaseOverride = null
-                    },
-                    onSelectPhase = { phase ->
-                        HapticFeedbackUtil.performClick(context)
-                        selectedPhaseOverride = phase
-                    }
-                )
-            }
-
-            // 3. Primary Liquid Glass Mihrab Sanctuary Card + 5-Salah Orbital Pills
-            item {
-                HeavenlyMihrabSanctuaryCard(
-                    phase = currentPhase,
-                    phaseColor = phasePrimaryColor,
-                    nextPrayerName = nextPrayerName,
-                    nextPrayerTimeFormatted = nextPrayerTimeFormatted,
-                    minutesToNextPrayer = minutesToNextPrayer,
-                    prayerStates = prayerStates,
-                    onTogglePrayer = { index ->
-                        HapticFeedbackUtil.performClick(context)
-                        val current = prayerStates[index]
-                        val updated = current.first to !current.second
-                        prayerStates[index] = updated
-                        onPrayerCompletedToggle(updated.first, updated.second)
-                    }
-                )
-            }
-
-            // 4. Contextual Life Advisor Card (Refractive Specular Glass)
-            item {
-                HeavenlyLifeAdvisorCard(
-                    directive = directive,
+                // Launcher Mode Switcher Pill (Phone Home vs Sanctuary Cockpit)
+                LauncherModeSegmentedToggle(
+                    currentMode = launcherMode,
                     accentColor = phasePrimaryColor,
-                    onExecuteDirective = {
-                        HapticFeedbackUtil.performHeavyClick(context)
-                        when (directive.ctaActionType) {
-                            DirectiveActionType.LOG_PRAYER -> {
-                                val idx = prayerStates.indexOfFirst { !it.second }
-                                if (idx >= 0) {
-                                    prayerStates[idx] = prayerStates[idx].first to true
+                    onSelectMode = { mode ->
+                        HapticFeedbackUtil.performTick(context)
+                        launcherMode = mode
+                    }
+                )
+            }
+
+            // Main Content Area depending on selected Launcher Mode
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                if (launcherMode == LauncherScreenMode.MINIMAL_PHONE) {
+                    // 1. MINIMALIST PHONE LAUNCHER VIEW
+                    MinimalistPhoneLauncherView(
+                        currentTimeText = currentTimeText,
+                        hijriDateString = hijriDateString,
+                        nextPrayerName = nextPrayerName,
+                        minutesToNextPrayer = minutesToNextPrayer,
+                        activeMissionTitle = dailyMissions.firstOrNull { !it.isCompleted }?.title,
+                        installedApps = installedApps,
+                        accentColor = phasePrimaryColor,
+                        onOpenSearchDrawer = {
+                            HapticFeedbackUtil.performClick(context)
+                            showAppDrawer = true
+                        },
+                        onLaunchApp = handleAppLaunchRequest,
+                        onOpenQuran = onOpenQuran,
+                        onOpenAdhkar = onOpenAdhkar,
+                        onOpenSalehBooks = onOpenSalehBooks,
+                        onOpenSettings = onOpenSettings,
+                        onOpenMuhasabah = {
+                            HapticFeedbackUtil.performClick(context)
+                            showMuhasabahLedger = true
+                        }
+                    )
+                } else {
+                    // 2. SANCTUARY COCKPIT VIEW
+                    SanctuaryCockpitView(
+                        currentTimeText = currentTimeText,
+                        hijriDateString = hijriDateString,
+                        cleanDaysStreak = cleanDaysStreak,
+                        phase = currentPhase,
+                        phaseColor = phasePrimaryColor,
+                        selectedPhaseOverride = selectedPhaseOverride,
+                        onSelectAutoPhase = {
+                            HapticFeedbackUtil.performTick(context)
+                            selectedPhaseOverride = null
+                        },
+                        onSelectPhase = { phase ->
+                            HapticFeedbackUtil.performClick(context)
+                            selectedPhaseOverride = phase
+                        },
+                        nextPrayerName = nextPrayerName,
+                        nextPrayerTimeFormatted = nextPrayerTimeFormatted,
+                        minutesToNextPrayer = minutesToNextPrayer,
+                        prayerStates = prayerStates,
+                        onTogglePrayer = { index ->
+                            HapticFeedbackUtil.performClick(context)
+                            val current = prayerStates[index]
+                            val updated = current.first to !current.second
+                            prayerStates[index] = updated
+                            onPrayerCompletedToggle(updated.first, updated.second)
+                        },
+                        directive = directive,
+                        onExecuteDirective = {
+                            HapticFeedbackUtil.performHeavyClick(context)
+                            when (directive.ctaActionType) {
+                                DirectiveActionType.LOG_PRAYER -> {
+                                    val idx = prayerStates.indexOfFirst { !it.second }
+                                    if (idx >= 0) {
+                                        prayerStates[idx] = prayerStates[idx].first to true
+                                    }
                                 }
+                                DirectiveActionType.OPEN_ADHKAR -> onOpenAdhkar()
+                                DirectiveActionType.START_FOCUS_MISSION -> {
+                                    val nextMission = dailyMissions.firstOrNull { !it.isCompleted }
+                                    activeFocusMissionTitle = nextMission?.title ?: "Deep Craft Session"
+                                    focusSecondsRemaining = 25 * 60
+                                    isFocusTimerRunning = true
+                                }
+                                DirectiveActionType.READ_SALEH_CHUNK -> onOpenSalehBooks()
+                                DirectiveActionType.OPEN_MUHASABAH_LEDGER -> showMuhasabahLedger = true
+                                DirectiveActionType.ENTER_AOD_SLEEP -> onLaunchAodSleepMode()
+                                DirectiveActionType.OPEN_PANIC_SHIELD -> onOpenPanicShield()
                             }
-                            DirectiveActionType.OPEN_ADHKAR -> onOpenAdhkar()
-                            DirectiveActionType.START_FOCUS_MISSION -> {
-                                val nextMission = dailyMissions.firstOrNull { !it.isCompleted }
-                                activeFocusMissionTitle = nextMission?.title ?: "Deep Craft Session"
-                                focusSecondsRemaining = 25 * 60
-                                isFocusTimerRunning = true
+                        },
+                        dailyMissions = dailyMissions,
+                        isFocusTimerRunning = isFocusTimerRunning,
+                        focusSecondsRemaining = focusSecondsRemaining,
+                        activeFocusMissionTitle = activeFocusMissionTitle,
+                        onToggleMission = { missionId ->
+                            HapticFeedbackUtil.performClick(context)
+                            val idx = dailyMissions.indexOfFirst { it.id == missionId }
+                            if (idx >= 0) {
+                                val item = dailyMissions[idx]
+                                val updated = !item.isCompleted
+                                dailyMissions[idx] = item.copy(isCompleted = updated)
+                                onToggleMissionPersisted?.invoke(missionId, updated)
                             }
-                            DirectiveActionType.READ_SALEH_CHUNK -> onOpenSalehBooks()
-                            DirectiveActionType.OPEN_MUHASABAH_LEDGER -> showMuhasabahLedger = true
-                            DirectiveActionType.ENTER_AOD_SLEEP -> onLaunchAodSleepMode()
-                            DirectiveActionType.OPEN_PANIC_SHIELD -> onOpenPanicShield()
+                        },
+                        onStartFocusForMission = { mission ->
+                            HapticFeedbackUtil.performHeavyClick(context)
+                            activeFocusMissionTitle = mission.title
+                            focusSecondsRemaining = mission.estimatedMinutes * 60
+                            isFocusTimerRunning = true
+                        },
+                        onStopFocusTimer = {
+                            HapticFeedbackUtil.performClick(context)
+                            isFocusTimerRunning = false
+                        },
+                        onAddMissionClick = {
+                            HapticFeedbackUtil.performClick(context)
+                            showAddMissionDialog = true
+                        },
+                        screenMinutesUsed = totalScreenMinutesToday,
+                        screenBudgetMinutes = dailyScreenBudgetMinutes,
+                        istighfarTodayCount = istighfarTodayCount,
+                        salahLockEnabled = salahLockEnabled,
+                        nightGuardEnabled = nightGuardEnabled,
+                        onIncrementIstighfar = {
+                            HapticFeedbackUtil.performTick(context)
+                            onIncrementIstighfar()
+                        },
+                        onToggleSalahLock = { salahLockEnabled = it },
+                        onToggleNightGuard = { nightGuardEnabled = it },
+                        onGrantUsageAccess = { AppLauncherManager.openUsageAccessSettings(context) },
+                        onOpenQuran = onOpenQuran,
+                        onOpenSalehBooks = onOpenSalehBooks,
+                        onOpenPanicShield = onOpenPanicShield,
+                        onLaunchAodSleepMode = onLaunchAodSleepMode,
+                        onOpenAppDrawer = {
+                            HapticFeedbackUtil.performClick(context)
+                            showAppDrawer = true
+                        },
+                        onOpenMuhasabahLedger = {
+                            HapticFeedbackUtil.performClick(context)
+                            showMuhasabahLedger = true
                         }
-                    }
-                )
+                    )
+                }
             }
 
-            // 5. Daily Amal Missions & Barakah Focus Card
-            item {
-                HeavenlyAmalMissionsCard(
-                    missions = dailyMissions,
-                    accentColor = phasePrimaryColor,
-                    isFocusTimerRunning = isFocusTimerRunning,
-                    focusSecondsRemaining = focusSecondsRemaining,
-                    activeFocusMissionTitle = activeFocusMissionTitle,
-                    onToggleMission = { missionId ->
-                        HapticFeedbackUtil.performClick(context)
-                        val idx = dailyMissions.indexOfFirst { it.id == missionId }
-                        if (idx >= 0) {
-                            val item = dailyMissions[idx]
-                            val updatedCompleted = !item.isCompleted
-                            dailyMissions[idx] = item.copy(isCompleted = updatedCompleted)
-                            onToggleMissionPersisted?.invoke(missionId, updatedCompleted)
-                        }
-                    },
-                    onStartFocusForMission = { mission ->
-                        HapticFeedbackUtil.performHeavyClick(context)
-                        activeFocusMissionTitle = mission.title
-                        focusSecondsRemaining = mission.estimatedMinutes * 60
-                        isFocusTimerRunning = true
-                    },
-                    onStopFocusTimer = {
-                        HapticFeedbackUtil.performClick(context)
-                        isFocusTimerRunning = false
-                    },
-                    onAddMissionClick = {
-                        HapticFeedbackUtil.performClick(context)
-                        showAddMissionDialog = true
+            // Pinned Core Phone Launcher Dock (Bottom of Home Screen)
+            PinnedPhoneBottomDock(
+                accentColor = phasePrimaryColor,
+                onOpenDialer = {
+                    HapticFeedbackUtil.performClick(context)
+                    AppLauncherManager.launchDialer(context)
+                },
+                onOpenMessaging = {
+                    HapticFeedbackUtil.performClick(context)
+                    AppLauncherManager.launchMessaging(context)
+                },
+                onToggleSanctuary = {
+                    HapticFeedbackUtil.performClick(context)
+                    launcherMode = if (launcherMode == LauncherScreenMode.MINIMAL_PHONE) {
+                        LauncherScreenMode.SANCTUARY_COCKPIT
+                    } else {
+                        LauncherScreenMode.MINIMAL_PHONE
                     }
-                )
-            }
-
-            // 6. Screen-Time Stewardship & Guardian Controls Card
-            item {
-                HeavenlyStewardshipCard(
-                    screenMinutesUsed = totalScreenMinutesToday,
-                    screenBudgetMinutes = dailyScreenBudgetMinutes,
-                    istighfarTodayCount = istighfarTodayCount,
-                    salahLockEnabled = salahLockEnabled,
-                    nightGuardEnabled = nightGuardEnabled,
-                    accentColor = phasePrimaryColor,
-                    onIncrementIstighfar = {
-                        HapticFeedbackUtil.performTick(context)
-                        onIncrementIstighfar()
-                    },
-                    onToggleSalahLock = { salahLockEnabled = it },
-                    onToggleNightGuard = { nightGuardEnabled = it },
-                    onGrantUsageAccess = {
-                        AppLauncherManager.openUsageAccessSettings(context)
-                    }
-                )
-            }
-
-            // 7. iOS-Style Bento Sanctuary Dock + Intentional App Library Trigger
-            item {
-                HeavenlyBentoDockSection(
-                    accentColor = phasePrimaryColor,
-                    installedApps = installedApps,
-                    onLaunchApp = handleAppLaunchRequest,
-                    onOpenQuran = onOpenQuran,
-                    onOpenSalehBooks = onOpenSalehBooks,
-                    onOpenPanicShield = onOpenPanicShield,
-                    onLaunchAodSleepMode = onLaunchAodSleepMode,
-                    onOpenFullAppDrawer = {
-                        HapticFeedbackUtil.performClick(context)
-                        showAppDrawer = true
-                    }
-                )
-            }
+                },
+                onOpenCamera = {
+                    HapticFeedbackUtil.performClick(context)
+                    AppLauncherManager.launchCamera(context)
+                },
+                onOpenAppDrawer = {
+                    HapticFeedbackUtil.performClick(context)
+                    showAppDrawer = true
+                }
+            )
         }
 
-        // Intentional App Drawer Sheet
+        // Full Searchable Intentional App Drawer Sheet
         if (showAppDrawer) {
             ModalBottomSheet(
                 onDismissRequest = { showAppDrawer = false },
                 containerColor = Color(0xF2101520),
                 contentColor = Color(0xFFF5F2EB),
-                shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp)
+                shape = RoundedCornerShape(topStart = 34.dp, topEnd = 34.dp)
             ) {
                 IntentionalAppDrawerSheet(
                     apps = installedApps,
@@ -576,7 +624,7 @@ fun MihrabHomeLauncherScreen(
                 onDismissRequest = { showMuhasabahLedger = false },
                 containerColor = Color(0xF2121020),
                 contentColor = Color(0xFFF5F2EB),
-                shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp)
+                shape = RoundedCornerShape(topStart = 34.dp, topEnd = 34.dp)
             ) {
                 EveningMuhasabahLedgerSheet(
                     completedPrayersCount = completedPrayersCount,
@@ -677,6 +725,645 @@ fun MihrabHomeLauncherScreen(
     }
 }
 
+// -------------------------------------------------------------------------------------------------
+// 1. MINIMALIST PHONE LAUNCHER VIEW
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun MinimalistPhoneLauncherView(
+    currentTimeText: String,
+    hijriDateString: String,
+    nextPrayerName: String,
+    minutesToNextPrayer: Int,
+    activeMissionTitle: String?,
+    installedApps: List<InstalledLauncherApp>,
+    accentColor: Color,
+    onOpenSearchDrawer: () -> Unit,
+    onLaunchApp: (InstalledLauncherApp) -> Unit,
+    onOpenQuran: () -> Unit,
+    onOpenAdhkar: () -> Unit,
+    onOpenSalehBooks: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenMuhasabah: () -> Unit
+) {
+    val context = LocalContext.current
+
+    // Quick favorites from installed apps
+    val favoriteApps = remember(installedApps) {
+        val candidates = listOf("whatsapp", "telegram", "camera", "chrome", "obsidian", "gmail", "maps", "youtube")
+        val matched = candidates.mapNotNull { key ->
+            installedApps.firstOrNull { it.packageName.lowercase().contains(key) || it.label.lowercase().contains(key) }
+        }.distinctBy { it.packageName }
+        if (matched.isNotEmpty()) matched.take(8) else installedApps.take(8)
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(top = 10.dp, bottom = 24.dp)
+    ) {
+        // Large Clock & Date Header
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = hijriDateString.uppercase(),
+                    color = Color(0xFFF5F2EB).copy(alpha = 0.72f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.8.sp
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = currentTimeText,
+                    color = Color(0xFFFBF9F5),
+                    fontSize = 72.sp,
+                    fontWeight = FontWeight.Light,
+                    fontFamily = FontFamily.Serif,
+                    letterSpacing = (-2).sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Next Prayer & Focus Target Pill
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    GlassmorphicBadge(
+                        text = "🕌 $nextPrayerName • ${minutesToNextPrayer}m left",
+                        color = accentColor,
+                        modifier = Modifier.clickable { onOpenMuhasabah() }
+                    )
+                    activeMissionTitle?.let { title ->
+                        GlassmorphicBadge(
+                            text = "🎯 ${title.take(22)}...",
+                            color = Color(0xFFF5F2EB),
+                            modifier = Modifier.clickable { onOpenSalehBooks() }
+                        )
+                    }
+                }
+            }
+        }
+
+        // Quick Search Bar / App Launcher trigger
+        item {
+            Surface(
+                shape = RoundedCornerShape(22.dp),
+                color = Color.White.copy(alpha = 0.08f),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.16f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpenSearchDrawer() }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = "Search", tint = accentColor, modifier = Modifier.size(20.dp))
+                        Text(
+                            text = "Search phone applications...",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 13.sp
+                        )
+                    }
+                    Text(
+                        text = "${installedApps.size} apps",
+                        color = accentColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        // Spiritual Shortcuts Bento
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                QuickAppLauncherTile(
+                    modifier = Modifier.weight(1f),
+                    title = "المصحف",
+                    subtitle = "Warsh & Hafs",
+                    icon = Icons.Default.MenuBook,
+                    accentColor = Color(0xFF10B981),
+                    onClick = onOpenQuran
+                )
+                QuickAppLauncherTile(
+                    modifier = Modifier.weight(1f),
+                    title = "الأذكار",
+                    subtitle = "Hisn al-Muslim",
+                    icon = Icons.Default.AutoAwesome,
+                    accentColor = Color(0xFF38BDF8),
+                    onClick = onOpenAdhkar
+                )
+                QuickAppLauncherTile(
+                    modifier = Modifier.weight(1f),
+                    title = "الكتب",
+                    subtitle = "Saleh Reform",
+                    icon = Icons.Default.Book,
+                    accentColor = Color(0xFFE5C185),
+                    onClick = onOpenSalehBooks
+                )
+            }
+        }
+
+        // Pinned Favorite Apps Grid (with Real Native App Icons)
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "FAVORITE APPLICATIONS",
+                        color = accentColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp
+                    )
+                    Text(
+                        text = "View All →",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 11.sp,
+                        modifier = Modifier.clickable { onOpenSearchDrawer() }
+                    )
+                }
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    userScrollEnabled = false
+                ) {
+                    items(favoriteApps, key = { it.packageName }) { app ->
+                        AppIconLauncherCell(
+                            app = app,
+                            accentColor = accentColor,
+                            onClick = { onLaunchApp(app) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// 2. SANCTUARY COCKPIT VIEW
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun SanctuaryCockpitView(
+    currentTimeText: String,
+    hijriDateString: String,
+    cleanDaysStreak: Int,
+    phase: SacredPhonePhase,
+    phaseColor: Color,
+    selectedPhaseOverride: SacredPhonePhase?,
+    onSelectAutoPhase: () -> Unit,
+    onSelectPhase: (SacredPhonePhase) -> Unit,
+    nextPrayerName: String,
+    nextPrayerTimeFormatted: String,
+    minutesToNextPrayer: Int,
+    prayerStates: List<Pair<String, Boolean>>,
+    onTogglePrayer: (Int) -> Unit,
+    directive: MuhasibLifeDirective,
+    onExecuteDirective: () -> Unit,
+    dailyMissions: List<DailyLifeMission>,
+    isFocusTimerRunning: Boolean,
+    focusSecondsRemaining: Int,
+    activeFocusMissionTitle: String?,
+    onToggleMission: (Int) -> Unit,
+    onStartFocusForMission: (DailyLifeMission) -> Unit,
+    onStopFocusTimer: () -> Unit,
+    onAddMissionClick: () -> Unit,
+    screenMinutesUsed: Int,
+    screenBudgetMinutes: Int,
+    istighfarTodayCount: Int,
+    salahLockEnabled: Boolean,
+    nightGuardEnabled: Boolean,
+    onIncrementIstighfar: () -> Unit,
+    onToggleSalahLock: (Boolean) -> Unit,
+    onToggleNightGuard: (Boolean) -> Unit,
+    onGrantUsageAccess: () -> Unit,
+    onOpenQuran: () -> Unit,
+    onOpenSalehBooks: () -> Unit,
+    onOpenPanicShield: () -> Unit,
+    onLaunchAodSleepMode: () -> Unit,
+    onOpenAppDrawer: () -> Unit,
+    onOpenMuhasabahLedger: () -> Unit
+) {
+    val context = LocalContext.current
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
+    ) {
+        // Editorial Lock-Screen Time & Sanctuary Header
+        item {
+            HeavenlyEditorialHeader(
+                currentTimeText = currentTimeText,
+                hijriDateString = hijriDateString,
+                cleanDaysStreak = cleanDaysStreak,
+                phaseColor = phaseColor,
+                onSetDefaultHome = {
+                    HapticFeedbackUtil.performClick(context)
+                    AppLauncherManager.openDefaultHomeSettings(context)
+                },
+                onOpenMuhasabahLedger = onOpenMuhasabahLedger
+            )
+        }
+
+        // Smooth Liquid Glass Phase Orbit Selector
+        item {
+            HeavenlyPhaseOrbitBar(
+                activePhase = phase,
+                isAutoMode = selectedPhaseOverride == null,
+                onSelectAuto = onSelectAutoPhase,
+                onSelectPhase = onSelectPhase
+            )
+        }
+
+        // Primary Liquid Glass Mihrab Sanctuary Card + 5-Salah Orbital Pills
+        item {
+            HeavenlyMihrabSanctuaryCard(
+                phase = phase,
+                phaseColor = phaseColor,
+                nextPrayerName = nextPrayerName,
+                nextPrayerTimeFormatted = nextPrayerTimeFormatted,
+                minutesToNextPrayer = minutesToNextPrayer,
+                prayerStates = prayerStates,
+                onTogglePrayer = onTogglePrayer
+            )
+        }
+
+        // Contextual Life Advisor Card
+        item {
+            HeavenlyLifeAdvisorCard(
+                directive = directive,
+                accentColor = phaseColor,
+                onExecuteDirective = onExecuteDirective
+            )
+        }
+
+        // Daily Amal Missions & Barakah Focus Card
+        item {
+            HeavenlyAmalMissionsCard(
+                missions = dailyMissions,
+                accentColor = phaseColor,
+                isFocusTimerRunning = isFocusTimerRunning,
+                focusSecondsRemaining = focusSecondsRemaining,
+                activeFocusMissionTitle = activeFocusMissionTitle,
+                onToggleMission = onToggleMission,
+                onStartFocusForMission = onStartFocusForMission,
+                onStopFocusTimer = onStopFocusTimer,
+                onAddMissionClick = onAddMissionClick
+            )
+        }
+
+        // Screen-Time Stewardship & Guardian Controls Card
+        item {
+            HeavenlyStewardshipCard(
+                screenMinutesUsed = screenMinutesUsed,
+                screenBudgetMinutes = screenBudgetMinutes,
+                istighfarTodayCount = istighfarTodayCount,
+                salahLockEnabled = salahLockEnabled,
+                nightGuardEnabled = nightGuardEnabled,
+                accentColor = phaseColor,
+                onIncrementIstighfar = onIncrementIstighfar,
+                onToggleSalahLock = onToggleSalahLock,
+                onToggleNightGuard = onToggleNightGuard,
+                onGrantUsageAccess = onGrantUsageAccess
+            )
+        }
+
+        // Bento Quick Access Section
+        item {
+            HeavenlyBentoTilesRow(
+                accentColor = phaseColor,
+                onOpenQuran = onOpenQuran,
+                onOpenSalehBooks = onOpenSalehBooks,
+                onOpenPanicShield = onOpenPanicShield,
+                onLaunchAodSleepMode = onLaunchAodSleepMode,
+                onOpenFullAppDrawer = onOpenAppDrawer
+            )
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// PINNED PHONE DOCK (Permanently at the bottom of the Home Launcher)
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun PinnedPhoneBottomDock(
+    accentColor: Color,
+    onOpenDialer: () -> Unit,
+    onOpenMessaging: () -> Unit,
+    onToggleSanctuary: () -> Unit,
+    onOpenCamera: () -> Unit,
+    onOpenAppDrawer: () -> Unit
+) {
+    val dockShape = RoundedCornerShape(32.dp)
+    val champagne = Color(0xFFE5C185)
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .shadow(
+                elevation = 24.dp,
+                shape = dockShape,
+                ambientColor = Color.Black,
+                spotColor = champagne.copy(alpha = 0.35f)
+            ),
+        shape = dockShape,
+        color = Color(0xE8101522),
+        border = BorderStroke(
+            1.dp,
+            Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.38f),
+                    champagne.copy(alpha = 0.28f),
+                    Color.White.copy(alpha = 0.08f)
+                )
+            )
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 1. Phone
+            DockIconButton(
+                icon = Icons.Default.Phone,
+                label = "Phone",
+                tint = Color(0xFF10B981),
+                onClick = onOpenDialer
+            )
+            // 2. Messaging
+            DockIconButton(
+                icon = Icons.Default.Message,
+                label = "Messages",
+                tint = Color(0xFF38BDF8),
+                onClick = onOpenMessaging
+            )
+            // 3. Central Sanctuary Orbit Toggle
+            Surface(
+                shape = CircleShape,
+                color = champagne.copy(alpha = 0.25f),
+                border = BorderStroke(1.5.dp, champagne),
+                modifier = Modifier
+                    .size(50.dp)
+                    .clickable { onToggleSanctuary() }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = "Sanctuary",
+                        tint = champagne,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            // 4. Camera
+            DockIconButton(
+                icon = Icons.Default.CameraAlt,
+                label = "Camera",
+                tint = Color(0xFFDFB2A9),
+                onClick = onOpenCamera
+            )
+            // 5. App Drawer
+            DockIconButton(
+                icon = Icons.Default.Apps,
+                label = "Apps",
+                tint = Color(0xFFF5F2EB),
+                onClick = onOpenAppDrawer
+            )
+        }
+    }
+}
+
+@Composable
+private fun DockIconButton(
+    icon: ImageVector,
+    label: String,
+    tint: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White.copy(alpha = 0.06f),
+        border = BorderStroke(0.6.dp, Color.White.copy(alpha = 0.12f)),
+        modifier = Modifier
+            .size(44.dp)
+            .clickable { onClick() }
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = tint,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// COMPONENTS: Segmented Mode Switcher & Banner
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun LauncherModeSegmentedToggle(
+    currentMode: LauncherScreenMode,
+    accentColor: Color,
+    onSelectMode: (LauncherScreenMode) -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = Color.White.copy(alpha = 0.07f),
+        border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.14f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            val modes = listOf(
+                LauncherScreenMode.MINIMAL_PHONE to "📱 واجهة الهاتف (Phone Launcher)",
+                LauncherScreenMode.SANCTUARY_COCKPIT to "🕌 محراب الحارس (Spiritual Sanctuary)"
+            )
+            modes.forEach { (mode, title) ->
+                val isSelected = currentMode == mode
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (isSelected) accentColor.copy(alpha = 0.24f) else Color.Transparent,
+                    border = if (isSelected) BorderStroke(0.8.dp, accentColor.copy(alpha = 0.5f)) else null,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onSelectMode(mode) }
+                ) {
+                    Text(
+                        text = title,
+                        color = if (isSelected) Color(0xFFFBF9F5) else Color.White.copy(alpha = 0.55f),
+                        fontSize = 11.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(vertical = 7.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SetDefaultLauncherBanner(
+    accentColor: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0x33E5C185),
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.7f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text("⚡", fontSize = 16.sp)
+                Column {
+                    Text(
+                        text = "تعيين المحاسب واجهة هاتفك الرئيسية",
+                        color = Color(0xFFFBF9F5),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Set as Default Home Launcher",
+                        color = accentColor,
+                        fontSize = 10.sp
+                    )
+                }
+            }
+            GlassmorphicBadge(text = "تفعيل الآن", color = accentColor)
+        }
+    }
+}
+
+@Composable
+private fun QuickAppLauncherTile(
+    modifier: Modifier = Modifier,
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    accentColor: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier.clickable { onClick() },
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White.copy(alpha = 0.06f),
+        border = BorderStroke(0.8.dp, accentColor.copy(alpha = 0.35f))
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, contentDescription = title, tint = accentColor, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(title, color = Color(0xFFFBF9F5), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(subtitle, color = Color.White.copy(alpha = 0.5f), fontSize = 9.sp)
+        }
+    }
+}
+
+@Composable
+private fun AppIconLauncherCell(
+    app: InstalledLauncherApp,
+    accentColor: Color,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val iconBitmap = remember(app.packageName) {
+        AppLauncherManager.getAppIconBitmap(context, app.packageName, 128)?.asImageBitmap()
+    }
+
+    Column(
+        modifier = Modifier
+            .clickable { onClick() }
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White.copy(alpha = 0.08f),
+            border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.18f)),
+            modifier = Modifier.size(54.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                if (iconBitmap != null) {
+                    Image(
+                        bitmap = iconBitmap,
+                        contentDescription = app.label,
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                } else {
+                    Text(
+                        text = app.label.take(1).uppercase(),
+                        color = accentColor,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = app.label,
+            color = Color(0xFFF5F2EB),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// COCKPIT SUB-COMPONENTS
+// -------------------------------------------------------------------------------------------------
 @Composable
 private fun HeavenlyDynamicIslandCapsule(
     isExpanded: Boolean,
@@ -690,11 +1377,11 @@ private fun HeavenlyDynamicIslandCapsule(
     onIncrementIstighfar: () -> Unit
 ) {
     val islandHeight by animateDpAsState(
-        targetValue = if (isExpanded) 108.dp else 40.dp,
+        targetValue = if (isExpanded) 104.dp else 40.dp,
         animationSpec = spring(dampingRatio = 0.74f, stiffness = Spring.StiffnessMediumLow),
         label = "dynamic_island_height"
     )
-    val shape = RoundedCornerShape(if (isExpanded) 30.dp else 999.dp)
+    val shape = RoundedCornerShape(if (isExpanded) 28.dp else 999.dp)
 
     Box(
         modifier = Modifier.fillMaxWidth(),
@@ -702,23 +1389,18 @@ private fun HeavenlyDynamicIslandCapsule(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(if (isExpanded) 1f else 0.78f)
+                .fillMaxWidth(if (isExpanded) 0.98f else 0.88f)
                 .height(islandHeight)
-                .shadow(
-                    elevation = 24.dp,
-                    shape = shape,
-                    ambientColor = Color.Black,
-                    spotColor = accentColor.copy(alpha = 0.35f)
-                )
-                .clip(shape)
+                .shadow(16.dp, shape = shape, spotColor = Color.Black.copy(alpha = 0.85f))
                 .clickable { onToggleExpand() },
-            color = Color(0xEB080B11),
+            shape = shape,
+            color = Color(0xF50D111A),
             border = BorderStroke(
                 1.dp,
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.38f),
-                        accentColor.copy(alpha = 0.28f),
+                        Color.White.copy(alpha = 0.35f),
+                        accentColor.copy(alpha = 0.3f),
                         Color.White.copy(alpha = 0.08f)
                     )
                 )
@@ -729,24 +1411,21 @@ private fun HeavenlyDynamicIslandCapsule(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(accentColor)
+                                .size(7.dp)
+                                .background(accentColor, CircleShape)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isFocusTimerRunning) {
-                                "Focus %02d:%02d".format(focusSecondsRemaining / 60, focusSecondsRemaining % 60)
-                            } else {
-                                "$nextPrayerName in ${minutesToNextPrayer}m"
-                            },
-                            color = Color(0xFFF5F2EB),
+                            text = "$nextPrayerName in ${minutesToNextPrayer}m",
+                            color = Color(0xFFFBF9F5),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -763,7 +1442,7 @@ private fun HeavenlyDynamicIslandCapsule(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                        .padding(horizontal = 18.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
@@ -794,13 +1473,13 @@ private fun HeavenlyDynamicIslandCapsule(
                             Text(
                                 text = "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
                                 color = Color(0xFFF5F2EB),
-                                fontSize = 16.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "Next Covenant: $nextPrayerName (-${minutesToNextPrayer}m)",
                                 color = Color.White.copy(alpha = 0.65f),
-                                fontSize = 12.sp
+                                fontSize = 11.sp
                             )
                         }
 
@@ -813,9 +1492,9 @@ private fun HeavenlyDynamicIslandCapsule(
                             Text(
                                 text = "+1 Tasbih ($istighfarCount)",
                                 color = accentColor,
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             )
                         }
                     }
@@ -848,7 +1527,7 @@ private fun ExpiredNiyyahLiquidBanner(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "Your time-boxed session concluded gently. Welcome back to your sanctuary.",
                     color = Color(0xFFF5F2EB).copy(alpha = 0.85f),
@@ -880,7 +1559,7 @@ private fun HeavenlyEditorialHeader(
             color = Color(0xFFF5F2EB).copy(alpha = 0.72f),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
-            letterSpacing = 2.sp
+            letterSpacing = 1.8.sp
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
@@ -891,7 +1570,7 @@ private fun HeavenlyEditorialHeader(
             fontFamily = FontFamily.Serif,
             letterSpacing = (-1.5).sp
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -903,7 +1582,7 @@ private fun HeavenlyEditorialHeader(
                 modifier = Modifier.clickable { onOpenMuhasabahLedger() }
             )
             GlassmorphicBadge(
-                text = "Set Default Home OS",
+                text = "Default Home OS",
                 color = Color(0xFFF5F2EB),
                 modifier = Modifier.clickable { onSetDefaultHome() }
             )
@@ -963,86 +1642,76 @@ private fun HeavenlyMihrabSanctuaryCard(
     prayerStates: List<Pair<String, Boolean>>,
     onTogglePrayer: (Int) -> Unit
 ) {
-    GlassmorphicCard(
-        borderColor = phaseColor.copy(alpha = 0.55f)
-    ) {
+    GlassmorphicCard(borderColor = phaseColor.copy(alpha = 0.5f)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column {
                 Text(
-                    text = phase.arabicTitle,
+                    text = "NEXT PRAYER COVENANT",
                     color = phaseColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.3.sp
+                )
+                Text(
+                    text = "صلاة $nextPrayerName",
+                    color = Color(0xFFFBF9F5),
                     fontSize = 24.sp,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = phase.englishTitle,
-                    color = Color(0xFFFBF9F5),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
             }
 
-            GlassmorphicBadge(
-                text = "$nextPrayerName • $nextPrayerTimeFormatted (-${minutesToNextPrayer}m)",
-                color = phaseColor
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "-${minutesToNextPrayer}m",
+                    color = phaseColor,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Light,
+                    fontFamily = FontFamily.Serif
+                )
+                Text(
+                    text = "Adhan: $nextPrayerTimeFormatted",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 11.sp
+                )
+            }
         }
 
-        Text(
-            text = phase.premiseSubtitle,
-            color = Color(0xFFF5F2EB).copy(alpha = 0.78f),
-            fontSize = 13.sp,
-            lineHeight = 19.sp
-        )
+        Spacer(modifier = Modifier.height(10.dp))
 
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // 5 Daily Prayers Liquid Glass Capsules
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            prayerStates.forEachIndexed { idx, (name, isDone) ->
-                val capsuleShape = RoundedCornerShape(18.dp)
-                Box(
+            prayerStates.forEachIndexed { idx, pair ->
+                val isDone = pair.second
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isDone) phaseColor.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.05f),
+                    border = BorderStroke(0.8.dp, if (isDone) phaseColor else Color.White.copy(alpha = 0.12f)),
                     modifier = Modifier
                         .weight(1f)
-                        .clip(capsuleShape)
-                        .background(
-                            if (isDone) phaseColor.copy(alpha = 0.22f)
-                            else Color.White.copy(alpha = 0.06f)
-                        )
-                        .border(
-                            BorderStroke(
-                                0.8.dp,
-                                if (isDone) phaseColor.copy(alpha = 0.65f)
-                                else Color.White.copy(alpha = 0.16f)
-                            ),
-                            capsuleShape
-                        )
                         .clickable { onTogglePrayer(idx) }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = if (isDone) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                            contentDescription = name,
-                            tint = if (isDone) phaseColor else Color.White.copy(alpha = 0.4f),
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
+                    Column(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
-                            text = name,
-                            color = if (isDone) Color(0xFFFBF9F5) else Color.White.copy(alpha = 0.6f),
-                            fontSize = 11.sp,
-                            fontWeight = if (isDone) FontWeight.Bold else FontWeight.Medium
+                            text = if (isDone) "●" else "○",
+                            color = if (isDone) phaseColor else Color.White.copy(alpha = 0.4f),
+                            fontSize = 12.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = pair.first,
+                            color = Color(0xFFFBF9F5),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
@@ -1057,65 +1726,44 @@ private fun HeavenlyLifeAdvisorCard(
     accentColor: Color,
     onExecuteDirective: () -> Unit
 ) {
-    GlassmorphicCard(
-        borderColor = accentColor.copy(alpha = 0.5f)
-    ) {
+    GlassmorphicCard(borderColor = accentColor.copy(alpha = 0.5f)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "SANCTUARY GUIDANCE",
-                    color = accentColor,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.4.sp
-                )
-            }
             Text(
                 text = directive.arabicBadge,
                 color = accentColor,
-                fontSize = 14.sp,
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Serif
             )
+            GlassmorphicBadge(text = "Solar Directive", color = accentColor)
         }
 
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = directive.headline,
             color = Color(0xFFFBF9F5),
             fontSize = 17.sp,
-            fontWeight = FontWeight.SemiBold
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold
         )
         Text(
             text = directive.detailText,
-            color = Color(0xFFF5F2EB).copy(alpha = 0.76f),
-            fontSize = 13.sp,
-            lineHeight = 19.sp
+            color = Color(0xFFF5F2EB).copy(alpha = 0.78f),
+            fontSize = 12.sp,
+            lineHeight = 18.sp
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
-
+        Spacer(modifier = Modifier.height(8.dp))
         GlassmorphicButton(
             onClick = onExecuteDirective,
             modifier = Modifier.fillMaxWidth(),
             accentColor = accentColor
         ) {
-            Text(
-                text = directive.primaryCtaLabel,
-                color = Color(0xFF0A0D14),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text(directive.primaryCtaLabel, color = Color(0xFF0A0D14), fontWeight = FontWeight.Bold, fontSize = 13.sp)
         }
     }
 }
@@ -1132,7 +1780,7 @@ private fun HeavenlyAmalMissionsCard(
     onStopFocusTimer: () -> Unit,
     onAddMissionClick: () -> Unit
 ) {
-    GlassmorphicCard {
+    GlassmorphicCard(borderColor = accentColor.copy(alpha = 0.45f)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1140,124 +1788,104 @@ private fun HeavenlyAmalMissionsCard(
         ) {
             Column {
                 Text(
-                    text = "DAILY AMAL MISSIONS • الأَعْمَال",
+                    text = "DAILY AMAL MISSIONS",
                     color = accentColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.3.sp
                 )
+                val completed = missions.count { it.isCompleted }
                 Text(
-                    text = "${missions.count { it.isCompleted }} of ${missions.size} Intentional Blocks Completed",
-                    color = Color(0xFFF5F2EB).copy(alpha = 0.68f),
+                    text = "$completed of ${missions.size} Blocks Sealed",
+                    color = Color.White.copy(alpha = 0.65f),
                     fontSize = 12.sp
                 )
             }
 
-            GlassmorphicBadge(
-                text = "+ New Amal",
-                color = accentColor,
-                modifier = Modifier.clickable { onAddMissionClick() }
-            )
+            IconButton(onClick = onAddMissionClick) {
+                Icon(Icons.Default.Add, contentDescription = "Add Mission", tint = accentColor)
+            }
         }
 
-        AnimatedVisibility(visible = isFocusTimerRunning) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(accentColor.copy(alpha = 0.18f))
-                    .border(1.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
-                    .padding(14.dp)
+        if (isFocusTimerRunning && activeFocusMissionTitle != null) {
+            val mins = focusSecondsRemaining / 60
+            val secs = focusSecondsRemaining % 60
+            val formatted = String.format(Locale.getDefault(), "%02d:%02d", mins, secs)
+
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = accentColor.copy(alpha = 0.18f),
+                border = BorderStroke(1.dp, accentColor.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "DEEP CRAFT SESSION ACTIVE",
-                            color = accentColor,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-                        Text(
-                            text = activeFocusMissionTitle ?: "Barakah Focus Block",
-                            color = Color(0xFFFBF9F5),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    Column {
+                        Text("ACTIVE FOCUS SESSION", color = accentColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(activeFocusMissionTitle, color = Color(0xFFFBF9F5), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    Text(
-                        text = "%02d:%02d".format(focusSecondsRemaining / 60, focusSecondsRemaining % 60),
-                        color = Color(0xFFFBF9F5),
-                        fontSize = 20.sp,
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 10.dp)
-                    )
-                    OutlinedButton(
-                        onClick = onStopFocusTimer,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text("Conclude", color = Color(0xFFFBF9F5), fontSize = 11.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(formatted, color = accentColor, fontSize = 20.sp, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(onClick = onStopFocusTimer) {
+                            Icon(Icons.Default.Close, contentDescription = "Stop", tint = Color(0xFFDFB2A9))
+                        }
                     }
                 }
             }
         }
 
         missions.forEach { mission ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
-                    .border(0.6.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(18.dp))
-                    .clickable { onToggleMission(mission.id) }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White.copy(alpha = 0.05f),
+                border = BorderStroke(0.6.dp, Color.White.copy(alpha = 0.12f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = if (mission.isCompleted) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                        contentDescription = null,
-                        tint = if (mission.isCompleted) accentColor else Color.White.copy(alpha = 0.4f),
-                        modifier = Modifier.size(19.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = mission.title,
-                            color = if (mission.isCompleted) Color.White.copy(alpha = 0.45f) else Color(0xFFFBF9F5),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            textDecoration = if (mission.isCompleted) TextDecoration.LineThrough else TextDecoration.None
-                        )
-                        Text(
-                            text = "${mission.prayerAnchor.replace("_", " ")} • ${mission.estimatedMinutes}m",
-                            color = accentColor.copy(alpha = 0.85f),
-                            fontSize = 11.sp
-                        )
-                    }
-                }
-
-                if (!mission.isCompleted) {
-                    IconButton(
-                        onClick = { onStartFocusForMission(mission) },
-                        modifier = Modifier.size(32.dp)
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onToggleMission(mission.id) },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Icon(
-                            Icons.Default.PlayArrow,
-                            contentDescription = "Begin Focus",
-                            tint = accentColor
+                            imageVector = if (mission.isCompleted) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                            contentDescription = null,
+                            tint = if (mission.isCompleted) accentColor else Color.White.copy(alpha = 0.35f),
+                            modifier = Modifier.size(18.dp)
                         )
+                        Column {
+                            Text(
+                                text = mission.title,
+                                color = if (mission.isCompleted) Color.White.copy(alpha = 0.45f) else Color(0xFFFBF9F5),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "${mission.prayerAnchor} • ${mission.estimatedMinutes}m",
+                                color = accentColor.copy(alpha = 0.75f),
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+
+                    if (!mission.isCompleted) {
+                        OutlinedButton(
+                            onClick = { onStartFocusForMission(mission) },
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text("Focus", fontSize = 10.sp, color = accentColor)
+                        }
                     }
                 }
             }
@@ -1278,10 +1906,10 @@ private fun HeavenlyStewardshipCard(
     onToggleNightGuard: (Boolean) -> Unit,
     onGrantUsageAccess: () -> Unit
 ) {
-    val progress = (screenMinutesUsed.toFloat() / screenBudgetMinutes.coerceAtLeast(1)).coerceIn(0f, 1f)
-    val barColor = if (progress >= 0.9f) Color(0xFFDFB2A9) else accentColor
+    val progress = (screenMinutesUsed.toFloat() / screenBudgetMinutes.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
+    val barColor = if (screenMinutesUsed > screenBudgetMinutes) Color(0xFFDFB2A9) else accentColor
 
-    GlassmorphicCard {
+    GlassmorphicCard(borderColor = accentColor.copy(alpha = 0.4f)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1289,14 +1917,14 @@ private fun HeavenlyStewardshipCard(
         ) {
             Column {
                 Text(
-                    text = "TIME STEWARDSHIP & STILLNESS",
+                    text = "SCREEN-TIME STEWARDSHIP",
                     color = accentColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.3.sp
                 )
                 Text(
-                    text = "Screen Presence Today: ${screenMinutesUsed}m of ${screenBudgetMinutes}m",
+                    text = "$screenMinutesUsed of ${screenBudgetMinutes}m Used Today",
                     color = Color(0xFFFBF9F5),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
@@ -1332,7 +1960,7 @@ private fun HeavenlyStewardshipCard(
                     colors = SwitchDefaults.colors(checkedThumbColor = accentColor)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Salah Stillness", color = Color(0xFFF5F2EB), fontSize = 12.sp)
+                Text("Salah Stillness", color = Color(0xFFF5F2EB), fontSize = 11.sp)
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1342,7 +1970,7 @@ private fun HeavenlyStewardshipCard(
                     colors = SwitchDefaults.colors(checkedThumbColor = accentColor)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Velvet Night", color = Color(0xFFF5F2EB), fontSize = 12.sp)
+                Text("Velvet Night", color = Color(0xFFF5F2EB), fontSize = 11.sp)
             }
 
             Text(
@@ -1357,17 +1985,15 @@ private fun HeavenlyStewardshipCard(
 }
 
 @Composable
-private fun HeavenlyBentoDockSection(
+private fun HeavenlyBentoTilesRow(
     accentColor: Color,
-    installedApps: List<InstalledLauncherApp>,
-    onLaunchApp: (InstalledLauncherApp) -> Unit,
     onOpenQuran: () -> Unit,
     onOpenSalehBooks: () -> Unit,
     onOpenPanicShield: () -> Unit,
     onLaunchAodSleepMode: () -> Unit,
     onOpenFullAppDrawer: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -1402,50 +2028,14 @@ private fun HeavenlyBentoDockSection(
             )
         }
 
-        Row(
+        GlassmorphicButton(
+            onClick = onOpenFullAppDrawer,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            accentColor = accentColor
         ) {
-            val dialerApp = installedApps.firstOrNull { it.packageName.contains("dialer") || it.label.contains("Phone", true) }
-            val smsApp = installedApps.firstOrNull { it.packageName.contains("messaging") || it.label.contains("Message", true) }
-
-            OutlinedButton(
-                onClick = { dialerApp?.let(onLaunchApp) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp),
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.24f))
-            ) {
-                Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFFF5F2EB), modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Phone", color = Color(0xFFF5F2EB), fontSize = 12.sp, fontWeight = FontWeight.Medium)
-            }
-
-            OutlinedButton(
-                onClick = { smsApp?.let(onLaunchApp) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp),
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.24f))
-            ) {
-                Icon(Icons.Default.Message, contentDescription = null, tint = Color(0xFFF5F2EB), modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Messages", color = Color(0xFFF5F2EB), fontSize = 12.sp, fontWeight = FontWeight.Medium)
-            }
-
-            GlassmorphicButton(
-                onClick = onOpenFullAppDrawer,
-                modifier = Modifier
-                    .weight(1.6f)
-                    .height(50.dp),
-                accentColor = accentColor
-            ) {
-                Icon(Icons.Default.Apps, contentDescription = null, tint = Color(0xFF0A0D14), modifier = Modifier.size(17.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("App Sanctuary", color = Color(0xFF0A0D14), fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            }
+            Icon(Icons.Default.Apps, contentDescription = null, tint = Color(0xFF0A0D14), modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("فتح درج التطبيقات الكامل (App Drawer)", color = Color(0xFF0A0D14), fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1460,7 +2050,7 @@ private fun HeavenlyBentoTile(
 ) {
     GlassmorphicCard(
         modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(20.dp),
         borderColor = accentColor.copy(alpha = 0.42f),
         onClick = onClick
     ) {
@@ -1468,8 +2058,8 @@ private fun HeavenlyBentoTile(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(icon, contentDescription = label, tint = accentColor, modifier = Modifier.size(22.dp))
-            Spacer(modifier = Modifier.height(6.dp))
+            Icon(icon, contentDescription = label, tint = accentColor, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = label,
                 color = Color(0xFFFBF9F5),
@@ -1481,6 +2071,9 @@ private fun HeavenlyBentoTile(
     }
 }
 
+// -------------------------------------------------------------------------------------------------
+// 3. FULL SEARCHABLE APP DRAWER SHEET (With Real Icons & Niyyah Gate)
+// -------------------------------------------------------------------------------------------------
 @Composable
 fun IntentionalAppDrawerSheet(
     apps: List<InstalledLauncherApp>,
@@ -1489,12 +2082,13 @@ fun IntentionalAppDrawerSheet(
     onSelectApp: (InstalledLauncherApp) -> Unit,
     onClose: () -> Unit
 ) {
+    val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedTierFilter by remember { mutableStateOf<AppSanctuaryTier?>(null) }
 
     val filteredApps = remember(apps, searchQuery, selectedTierFilter) {
         apps.filter { app ->
-            val matchesQuery = searchQuery.isBlank() || app.label.contains(searchQuery, ignoreCase = true)
+            val matchesQuery = searchQuery.isBlank() || app.label.contains(searchQuery, ignoreCase = true) || app.packageName.contains(searchQuery, ignoreCase = true)
             val matchesTier = selectedTierFilter == null || app.tier == selectedTierFilter
             matchesQuery && matchesTier
         }
@@ -1503,7 +2097,7 @@ fun IntentionalAppDrawerSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 22.dp, vertical = 12.dp)
+            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1521,7 +2115,7 @@ fun IntentionalAppDrawerSheet(
                 Text(
                     text = "${currentPhase.englishTitle} • Mindful Niyyah Gate Active",
                     color = Color(0xFFF5F2EB).copy(alpha = 0.65f),
-                    fontSize = 12.sp
+                    fontSize = 11.sp
                 )
             }
             IconButton(onClick = onClose) {
@@ -1529,12 +2123,12 @@ fun IntentionalAppDrawerSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Search applications with intention...", color = Color.White.copy(alpha = 0.4f)) },
+            placeholder = { Text("Search applications with intention...", color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = accentColor) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -1568,13 +2162,13 @@ fun IntentionalAppDrawerSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(420.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .height(440.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(filteredApps, key = { it.packageName }) { app ->
                 val isGuarded = app.tier == AppSanctuaryTier.GUARDED_DOPAMINE
@@ -1584,44 +2178,80 @@ fun IntentionalAppDrawerSheet(
                     else -> accentColor
                 }
 
+                val iconBitmap = remember(app.packageName) {
+                    AppLauncherManager.getAppIconBitmap(context, app.packageName, 128)?.asImageBitmap()
+                }
+
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(18.dp),
                     color = Color.White.copy(alpha = 0.05f),
-                    border = BorderStroke(0.8.dp, badgeColor.copy(alpha = 0.32f)),
+                    border = BorderStroke(0.7.dp, badgeColor.copy(alpha = 0.32f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onSelectApp(app) }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Real App Icon or Letter Fallback
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.White.copy(alpha = 0.08f),
+                                modifier = Modifier.size(42.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    if (iconBitmap != null) {
+                                        Image(
+                                            bitmap = iconBitmap,
+                                            contentDescription = app.label,
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                        )
+                                    } else {
+                                        Text(
+                                            text = app.label.take(1).uppercase(),
+                                            color = badgeColor,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 18.sp
+                                        )
+                                    }
+                                }
+                            }
+
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = app.label,
+                                        color = Color(0xFFFBF9F5),
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = app.tier.arabicBadge,
+                                        color = badgeColor,
+                                        fontSize = 11.sp,
+                                        fontFamily = FontFamily.Serif
+                                    )
+                                }
                                 Text(
-                                    text = app.label,
-                                    color = Color(0xFFFBF9F5),
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = app.tier.arabicBadge,
-                                    color = badgeColor,
-                                    fontSize = 12.sp,
-                                    fontFamily = FontFamily.Serif
+                                    text = "${app.tier.title} • ${app.usageMinutesToday}m / ${app.dailyLimitMinutes}m",
+                                    color = Color.White.copy(alpha = 0.58f),
+                                    fontSize = 11.sp
                                 )
                             }
-                            Text(
-                                text = "${app.tier.title} • ${app.usageMinutesToday}m of ${app.dailyLimitMinutes}m today",
-                                color = Color.White.copy(alpha = 0.58f),
-                                fontSize = 11.sp
-                            )
                         }
 
                         GlassmorphicBadge(
-                            text = if (app.tier.requiresNiyyahGate) "Niyyah Gate" else "Direct Open",
+                            text = if (app.tier.requiresNiyyahGate) "Niyyah Gate" else "Direct",
                             color = badgeColor
                         )
                     }
@@ -1631,6 +2261,9 @@ fun IntentionalAppDrawerSheet(
     }
 }
 
+// -------------------------------------------------------------------------------------------------
+// DIALOGS: Niyyah Gate, Hard Block, Muhasabah Ledger, Add Mission
+// -------------------------------------------------------------------------------------------------
 @Composable
 fun NiyyahGateInterceptorDialog(
     decision: AppLaunchDecision.RequiresNiyyahGate,

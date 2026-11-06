@@ -18,6 +18,39 @@
 
 ---
 
+## 📱 Visual Showcase & App Tour (معرض الشاشات)
+
+<div align="center">
+  <p><b>✨ Designed with Al-Mihrab Neumorphic Glassmorphism & True AMOLED Black (#000000) ✨</b></p>
+</div>
+
+### 1. الصرح الروحاني والعبادات (Spiritual Cockpit & Devotion)
+
+| محراب الحارس (Dashboard) | مصحف المحاسب (Quran Reader) | حصن المسلم (Adhkar Fortress) |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/01_guardian_dashboard.png" width="260" alt="Guardian Dashboard"/> | <img src="docs/screenshots/02_quran_reader.png" width="260" alt="Quran Reader"/> | <img src="docs/screenshots/03_adhkar_fortress.png" width="260" alt="Adhkar Fortress"/> |
+| **لوحة قيادة الصلاة والمحاسبة اليومية**<br/>• عداد الصلاة التنازلي الدقيق<br/>• مسار الشمس الفلكي اللحظي<br/>• حلقة المحاسبة السريعة (88%)<br/>• زر الطوارئ السريع | **قراءة القرآن بروايتي ورش وحفص**<br/>• خط عثماني مغربي أصيل<br/>• تلوين أحكام التجويد خوارزمياً<br/>• شريط مشغل التلاوات الخلفي<br/>• خيارات الخطوط والأحجام المخصصة | **أذكار الصباح والمساء وحصن المسلم**<br/>• عداد تفاعلي مع ردود لمسية<br/>• بطاقات فضائل الأذكار<br/>• فئات وتصنيفات روحانية شاملة<br/>• تتبع إنجاز الأوراد اليومية |
+
+---
+
+### 2. التزكية والتعافي ومكافحة الإدمان (Tazkiyah & Addiction Recovery)
+
+| جبهات التعافي (Recovery Fronts) | مِفتاح الطوارئ (Panic Sheet) | خزانة الصالح (Al-Saleh Library) |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/04_recovery_fronts.png" width="260" alt="Recovery Fronts"/> | <img src="docs/screenshots/05_panic_sheet.png" width="260" alt="Panic Sheet"/> | <img src="docs/screenshots/06_saleh_reform_hub.png" width="260" alt="Al-Saleh Library"/> |
+| **جهاد الصلاة والإباحية والحشيش والتدخين**<br/>• عداد الساعات والأيام بدقة tnum<br/>• مؤشرات استعادة مستقبلات CB1 الدماغية<br/>• بوابة التأمل الإلزامي (30 ثانية)<br/>• درجات التزكية ومراحل التعافي | **مفرمل الشهوات ومكافحة الانتكاسة**<br/>• تمرين التنفس التهدئي الموجه (4-7-8)<br/>• زر الوضوء والصدمة بالماء البارد<br/>• بث الرقية الشرعية المباشر<br/>• تسبيح واستغفار الطوارئ اللحظي | **مكتبة الإصلاح النفسي والسلوكي**<br/>• اقتباسات ابن القيم وابن الجوزي الحية<br/>• تحميل مجاني بضغطة واحدة أوفلاين<br/>• تبويب الأدوية النفسية لعلاج الإدمان<br/>• وِرد قراءة يومي مخصص |
+
+---
+
+### 3. شاشة السكون والمحاسبة والقبلة (Ambient OLED AOD & Tools)
+
+| شاشة السكون (AMOLED AOD) | تخصيص AOD (AOD Settings) | بوصلة القبلة (Qibla Compass) | لوحة المحاسبة (Leaderboard) |
+| :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/07_amoled_aod.png" width="200" alt="AMOLED AOD"/> | <img src="docs/screenshots/08_aod_settings.png" width="200" alt="AOD Settings"/> | <img src="docs/screenshots/09_qibla_compass.png" width="200" alt="Qibla Compass"/> | <img src="docs/screenshots/10_leaderboard_muhasabah.png" width="200" alt="Leaderboard"/> |
+| **أسود حقيقي 100% لتوفير البطارية**<br/>• سبحة تفاعلية تعمل من القفل<br/>• لوحة حكمة اليوم من كتب الصالحين<br/>• أدعية متغيرة حسب أوقات اليوم<br/>• حماية متطورة من تطبيع البكسلات | **تخصيص شاشة العرض الدائم**<br/>• 5 أنماط للساعة (رقمية، عربية، عقارب)<br/>• 6 باليتات ألوان روحانية مقدسة<br/>• حماية الجيب وإيقاف اللمس العرضي<br/>• تحكم بتردد الشاشة 30Hz/60Hz | **بوصلة فلكية ثلاثية الأبعاد**<br/>• دمج المستشعرات (Sensor Fusion)<br/>• مؤشر الكعبة الذهبي عند 112°<br/>• إشعار لمسي عند محاذاة القبلة<br/>• حساب دقيق لزاوية الانحراف | **سجل الالتزام ورتبة المجاهد**<br/>• مخطط بياني لـ 14 يوماً من العبادات<br/>• رتبة «المُرَابِط» والأوسمة التقديرية<br/>• تتبع الفرائض والنوافل وأذكار اليوم<br/>• حماية الخصوصية 100% دون خوادم |
+
+---
+
 ## 🌟 Key Features
 
 ### 1. 🌙 Ultra-Low-Power AMOLED Always-On Display (AOD)
